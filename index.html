@@ -113,7 +113,10 @@
 
         <div class="max-w-md mx-auto mt-8 objectives-panel" id="objectives-panel">
             <div class="bg-white p-4 rounded-lg shadow">
-                <h2 class="font-semibold text-lg text-gray-800">Over a phone call</h2>
+                <div class="objective-header">
+                    <span class="font-semibold text-lg text-gray-800">Over a phone call</span>
+                    <button id="close-btn" class="close-btn">✕</button>
+                </div>
                 <div class="mt-4">
                     <h3 class="text-sm font-semibold text-gray-800">Scenario</h3>
                     <p class="text-sm text-gray-600 mt-1">You are calling your friend in Chennai, curious about their
@@ -134,24 +137,32 @@
     </div>
 
     <script>
-            // Toggle Behaviour for the objectives
-            document.addEventListener('DOMContentLoaded', () => {
-                const checklist = document.getElementById('checklistItems');
 
-                checklist.addEventListener('change', (event) => {
-                    if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
-                        const label = event.target.nextElementSibling;
-                        if (event.target.checked) {
-                            label.style.textDecoration = 'line-through';
-                            label.style.color = '#999';
-                        } else {
-                            label.style.textDecoration = 'none';
-                            label.style.color = '#000';
-                        }
-                    }
-                });
+        // Chat interface - Simulate opening the chat interface when a card is clicked
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', function () {
+                document.getElementById('chat-container').style.display = 'flex';
             });
-        
+        });
+
+        // Toggle Behaviour for the objectives
+        document.addEventListener('DOMContentLoaded', () => {
+            const checklist = document.getElementById('checklistItems');
+
+            checklist.addEventListener('change', (event) => {
+                if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                    const label = event.target.nextElementSibling;
+                    if (event.target.checked) {
+                        label.style.textDecoration = 'line-through';
+                        label.style.color = '#999';
+                    } else {
+                        label.style.textDecoration = 'none';
+                        label.style.color = '#000';
+                    }
+                }
+            });
+        });
+
         // Objectives panel
         document.getElementById('objectives-btn').addEventListener('click', function () {
             var objectivesPanel = document.getElementById('objectives-panel');
@@ -220,13 +231,7 @@
             // Append the new chat message element to the chat-messages div
             chatMessagesDiv.appendChild(newChatMessage);
         }
-    
-        // Chat interface - Simulate opening the chat interface when a card is clicked
-        document.querySelectorAll('.card').forEach(card => {
-            card.addEventListener('click', function () {
-                document.getElementById('chat-container').style.display = 'flex';
-            });
-        });
+
 
     </script>
 </body>
