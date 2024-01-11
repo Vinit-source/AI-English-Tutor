@@ -103,11 +103,11 @@
             <span class="chat-title">Over a phone call</span>
             <button id="objectives-btn" class="objectives-btn">☰</button>
         </div>
-        <div class="chat-messages">
+        <div class="chat-messages" id="chat-messages">
             <!-- Chat messages go here -->
         </div>
-        <div class="chat-input">
-            <input type="text" placeholder="Type a message...">
+        <div class="chat-input-container">
+            <input id="chat-input" type="text" placeholder="Type a message...">
             <button id="send-button">Send</button>
         </div>
 
@@ -175,64 +175,51 @@
             objectivesPanel.style.display = 'none';
         })
 
-        // Get the chat-messages div element
+        // Chat interface - send message in the chat window
+        // Get the necessary elements
         const chatMessagesDiv = document.querySelector('.chat-messages');
-
-        // Create a new chat message element
-        const newChatMessage = document.createElement('div');
-        newChatMessage.classList.add('chat-message');
-        newChatMessage.textContent = chatText;
-
-        // Append the new chat message element to the chat-messages div
-        chatMessagesDiv.appendChild(newChatMessage);
-
-        // Get the send button element
         const sendButton = document.querySelector('#send-button');
-
-        // Get the chat input element
-        const chatInput = document.querySelector('.chat-input');
-
-        // Add event listener to the send button
-        sendButton.addEventListener('click', function () {
-            // Get the chat text from the value of the chat input
-            var chatText = chatInput.value;
-
-            // Clear the chat input
-            chatInput.value = '';
-
-            // Call a function to add the chat message to the chat messages div using the chatText
-            addChatMessage(chatText);
-        });
-
-        // Add event listener to the chat input for the Enter key
-        chatInput.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                // Get the chat text from the value of the chat input
-                var chatText = chatInput.value;
-
-                // Clear the chat input
-                chatInput.value = '';
-
-                // Call a function to add the chat message to the chat messages div using the chatText
-                addChatMessage(chatText);
-            }
-        });
+        const chatInput = document.querySelector('#chat-input');
 
         // Function to add the chat message to the chat messages div
-        function addChatMessage(chatText) {
-            // Get the chat-messages div element
-            var chatMessagesDiv = document.querySelector('.chat-messages');
-
+        function addChatMessage(chatText, sender) {
             // Create a new chat message element
             var newChatMessage = document.createElement('div');
-            newChatMessage.classList.add('chat-message');
+            newChatMessage.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
             newChatMessage.textContent = chatText;
 
             // Append the new chat message element to the chat-messages div
             chatMessagesDiv.appendChild(newChatMessage);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
         }
 
+        // Function to send a message
+        const sendMessage = async () => {
+            const message = chatInput.value.trim();
+            if (message === '') return;
 
+            // Display the user's message
+            addChatMessage(message, 'user');
+            chatInput.value = '';
+
+            // Get and display the AI response
+            const response = await getAIResponse(message);
+            addChatMessage(response, 'ai');
+        };
+
+        // Function to get a response from OpenAI (placeholder)
+        const getAIResponse = async (message) => {
+            // Placeholder: Replace this with a call to OpenAI's API
+            return "AI Response to: " + message;
+        };
+
+        // Event listeners for sending messages
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
     </script>
 </body>
 
