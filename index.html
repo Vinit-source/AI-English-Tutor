@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+
+        .checklist ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            margin-bottom: 10px;
+        }
+
+        .checklist input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .checklist label {
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-gray-100">
+    <div class="max-w-md mx-auto">
+        <!-- Header with tabs -->
+        <div class="flex justify-between bg-white p-4 rounded-t-lg shadow">
+            <div class="font-semibold text-gray-800">Roleplay</div>
+            <!-- <div class="font-semibold text-gray-400">Free Talk</div> -->
+        </div>
+
+        <!-- Cards container -->
+        <div class="grid grid-cols-2 gap-2 bg-white p-4 shadow">
+            <!-- Over a phone call -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="assets/img/Young adult on a phone call.png" alt="Young adult on a phone call" class="mb-1">
+                <span class="text-xs text-center">Over a phone call</span>
+                <!-- <span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full mt-1">FREE</span> -->
+            </div>
+
+            <!-- Restaurant scene -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="assets/img/Young adult conversing with a waiter.png"
+                    alt="Young adult conversing with a waiter.png" class="mb-1">
+                <span class="text-xs text-center">At a restaurant</span>
+            </div>
+
+            <!-- At a Nike store -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="https://placehold.co/50x50" alt="Image of a sneaker, symbolizing a situation at a Nike store"
+                    class="mb-1">
+                <span class="text-xs text-center">At a Nike store</span>
+            </div>
+
+            <!-- At a coffee shop -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="https://placehold.co/50x50"
+                    alt="Picture of a coffee cup, indicating a setting at a coffee shop" class="mb-1">
+                <span class="text-xs text-center">At a coffee shop</span>
+            </div>
+
+            <!-- First day of class -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="https://placehold.co/50x50"
+                    alt="Icon of a male student, denoting the First day of class scenario" class="mb-1">
+                <span class="text-xs text-center">First day of class</span>
+            </div>
+
+            <!-- Birthday at a Spanish restaurant -->
+            <div class="flex flex-col items-center p-2 card">
+                <img src="https://placehold.co/50x50"
+                    alt="Icon of a paella dish, depicting a Birthday at a Spanish restaurant" class="mb-1">
+                <span class="text-xs text-center">Birthday at a Spanish restaurant</span>
+                <!-- <span class="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full mt-1">1</span> -->
+            </div>
+        </div>
+
+        <!--  Bottom Navigation 
+        <div class="flex justify-between bg-white p-4 rounded-b-lg mt-2 shadow">
+            <i class="fas fa-home fa-lg text-gray-800"></i>
+            <i class="fas fa-book-open fa-lg text-gray-400"></i>
+            <i class="fas fa-save fa-lg text-gray-400"></i>
+            <i class="fas fa-trophy fa-lg text-gray-400"></i>
+            <i class="fas fa-user fa-lg text-gray-400"></i>
+        </div> -->
+    </div>
+
+    <div id="chat-container" class="chat-container">
+        <div class="chat-header">
+            <span class="chat-title">Over a phone call</span>
+            <button id="objectives-btn" class="objectives-btn">☰</button>
+        </div>
+        <div class="chat-messages">
+            <!-- Chat messages go here -->
+        </div>
+        <div class="chat-input">
+            <input type="text" placeholder="Type a message...">
+            <button id="send-button">Send</button>
+        </div>
+
+        <div class="max-w-md mx-auto mt-8 objectives-panel" id="objectives-panel">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h2 class="font-semibold text-lg text-gray-800">Over a phone call</h2>
+                <div class="mt-4">
+                    <h3 class="text-sm font-semibold text-gray-800">Scenario</h3>
+                    <p class="text-sm text-gray-600 mt-1">You are calling your friend in Chennai, curious about their
+                        well-being, work life, and upcoming weekend getaway plans.</p>
+                </div>
+                <div class="mt-4 checklist">
+                    <h3 class="text-sm font-semibold text-gray-800">Objectives</h3>
+                    <ul class="list-disc list-inside text-sm text-gray-600 mt-1" id="checklistItems">
+                        <li><input type="checkbox" id="item1"><label for="item1">Ask how is your friend doing</label>
+                        </li>
+                        <li><input type="checkbox" id="item2"><label for="item2">Ask how is work pressure</label></li>
+                        <li><input type="checkbox" id="item3"><label for="item3">Ask about his holiday plans for the
+                                weekend</label></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+            // Toggle Behaviour for the objectives
+            document.addEventListener('DOMContentLoaded', () => {
+                const checklist = document.getElementById('checklistItems');
+
+                checklist.addEventListener('change', (event) => {
+                    if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                        const label = event.target.nextElementSibling;
+                        if (event.target.checked) {
+                            label.style.textDecoration = 'line-through';
+                            label.style.color = '#999';
+                        } else {
+                            label.style.textDecoration = 'none';
+                            label.style.color = '#000';
+                        }
+                    }
+                });
+            });
+        
+        // Objectives panel
+        document.getElementById('objectives-btn').addEventListener('click', function () {
+            var objectivesPanel = document.getElementById('objectives-panel');
+            objectivesPanel.style.display = objectivesPanel.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Close the objectives panel
+        document.getElementById('close-btn').addEventListener('click', function () {
+            var objectivesPanel = document.getElementById('objectives-panel');
+            objectivesPanel.style.display = 'none';
+        })
+
+        // Get the chat-messages div element
+        const chatMessagesDiv = document.querySelector('.chat-messages');
+
+        // Create a new chat message element
+        const newChatMessage = document.createElement('div');
+        newChatMessage.classList.add('chat-message');
+        newChatMessage.textContent = chatText;
+
+        // Append the new chat message element to the chat-messages div
+        chatMessagesDiv.appendChild(newChatMessage);
+
+        // Get the send button element
+        const sendButton = document.querySelector('#send-button');
+
+        // Get the chat input element
+        const chatInput = document.querySelector('.chat-input');
+
+        // Add event listener to the send button
+        sendButton.addEventListener('click', function () {
+            // Get the chat text from the value of the chat input
+            var chatText = chatInput.value;
+
+            // Clear the chat input
+            chatInput.value = '';
+
+            // Call a function to add the chat message to the chat messages div using the chatText
+            addChatMessage(chatText);
+        });
+
+        // Add event listener to the chat input for the Enter key
+        chatInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                // Get the chat text from the value of the chat input
+                var chatText = chatInput.value;
+
+                // Clear the chat input
+                chatInput.value = '';
+
+                // Call a function to add the chat message to the chat messages div using the chatText
+                addChatMessage(chatText);
+            }
+        });
+
+        // Function to add the chat message to the chat messages div
+        function addChatMessage(chatText) {
+            // Get the chat-messages div element
+            var chatMessagesDiv = document.querySelector('.chat-messages');
+
+            // Create a new chat message element
+            var newChatMessage = document.createElement('div');
+            newChatMessage.classList.add('chat-message');
+            newChatMessage.textContent = chatText;
+
+            // Append the new chat message element to the chat-messages div
+            chatMessagesDiv.appendChild(newChatMessage);
+        }
+    
+        // Chat interface - Simulate opening the chat interface when a card is clicked
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', function () {
+                document.getElementById('chat-container').style.display = 'flex';
+            });
+        });
+
+    </script>
+</body>
+
+</html>

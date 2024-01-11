@@ -1,0 +1,144 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+  }
+  
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 20px;
+    justify-content: center;
+  }
+  
+  .card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    width: 150px;
+    margin: 10px;
+    padding: 20px;
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .card-icon img {
+    width: 100%;
+    height: auto;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    color: #333;
+    padding: 10px;
+  }
+  
+  .card-status {
+    font-size: 14px;
+    color: green;
+    padding: 5px;
+    background-color: #eefeeb;
+    border-top: 1px solid #d4d4d4;
+  }
+
+  
+  body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .chat-container {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    height: 100vh;
+    max-width: 600px; /* Maximum width of the chat interface */
+    margin: auto;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    position: relative;
+  }
+  
+  .chat-header {
+    background: #f5f5f5;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .chat-title {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .objectives-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  .chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  
+  .chat-input {
+    border-top: 1px solid #ccc;
+    padding: 10px;
+    display: flex;
+  }
+  
+  .chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-right: 10px;
+  }
+  
+  .chat-input button {
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .objectives-panel {
+    display: none; /* Hidden by default */
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100%;
+    max-width: 300px;
+    background: #fff;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+  }
+
+  .objective-header {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .chat-title {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  @media (max-width: 600px) {
+    .chat-container {
+      border-left: none;
+      border-right: none;
+    }
+  }
+  
