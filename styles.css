@@ -147,21 +147,23 @@ body {
 
 /* Styling for User and AI Messages */
 .user-message {
+  color: blue;
   text-align: right;
-  margin: 5px;
-  padding: 5px;
-  background-color: white;
-  border-radius: 4px;
-  display: block;
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 5px;
+  margin: 10px;
+  padding: 10px;
 }
 
 .ai-message {
+  color: red;
   text-align: left;
-  margin: 5px;
-  padding: 5px;
-  background-color: #f1f1f1;
-  border-radius: 4px;
-  display: block;
+  background-color: #fff1f0;
+  border: 1px solid #ffa39e;
+  border-radius: 5px;
+  margin: 10px;
+  padding: 10px;
 }
 
 @media (max-width: 600px) {

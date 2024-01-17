@@ -137,7 +137,6 @@
     </div>
 
     <script>
-
         // Chat interface - Simulate opening the chat interface when a card is clicked
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('click', function () {
@@ -210,8 +209,21 @@
         // Function to get a response from OpenAI (placeholder)
         const getAIResponse = async (message) => {
             // Placeholder: Replace this with a call to OpenAI's API
-            return "AI Response to: " + message;
+            return askAI(message);
         };
+
+        function askAI(message) {
+            fetch('http://127.0.0.1:5500/getAIResponse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message }),
+            })
+                .then(response => response.json())
+                .then(data => console.log(data.reply))
+                .catch(error => console.error('Error:', error));
+        }
 
         // Event listeners for sending messages
         sendButton.addEventListener('click', sendMessage);
