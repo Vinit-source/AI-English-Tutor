@@ -13,6 +13,20 @@ body {
   justify-content: center;
 }
 
+#overlay {
+  position: fixed; /* Sit on top of the page content */
+  display: none; /* Hidden by default */
+  width: 100%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+  z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+  cursor: pointer; /* Add a pointer on hover */
+}
+
 .card {
   background: #fff;
   border-radius: 8px;
@@ -57,14 +71,24 @@ body {
 .chat-container {
   display: none;
   /* Hidden by default */
+  position: fixed;
+  /* Stay in place */
+  z-index: 5;
+  /* Sit on top */
+  left: 15px;
+  top: 15px;
+  right:15px;
+  bottom: 15px;
   flex-direction: column;
-  height: 100vh;
+  /* height: 100vh; */
   max-width: 600px;
   /* Maximum width of the chat interface */
   margin: auto;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  position: relative;
+  /* border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc; */
+  border-radius: 5px;
+  overflow: auto; /* Enable scroll if needed */
+  backdrop-filter: blur(10px); /* Blur effect */
 }
 
 .chat-header {
@@ -89,21 +113,26 @@ body {
 }
 
 .chat-messages {
+  position: relative; /* Ensure this is set to contain the absolute canvas */
   flex: 1;
   padding: 10px;
   overflow-y: auto;
+  height: 90vh;
 }
 
-.chat-messages {
-  height: 300px;
-  overflow-y: auto;
-  padding: 10px;
+#chatCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white; /* Set the background color to white (or any other color) */
 }
 
 .chat-input-container {
-  border-top: 1px solid #ccc;
-  padding: 10px;
+  /* border-top: 1px solid #ccc; */
   display: flex;
+  margin-top: 10px;
 }
 
 .chat-input-container input {
@@ -111,6 +140,7 @@ body {
   padding: 10px;
   border: 1px solid #ccc;
   margin-right: 10px;
+  border-radius: 5px;
 }
 
 .chat-input-container button {
@@ -119,6 +149,7 @@ body {
   color: white;
   border: none;
   cursor: pointer;
+  border-radius: 5px;
 }
 
 .objectives-panel {
@@ -157,10 +188,10 @@ body {
 }
 
 .ai-message {
-  color: red;
+  color: green;
   text-align: left;
-  background-color: #fff1f0;
-  border: 1px solid #ffa39e;
+  background-color: #f4fff0;
+  border: 1px solid #9eff9e;
   border-radius: 5px;
   margin: 10px;
   padding: 10px;
