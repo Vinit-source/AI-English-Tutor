@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Tutor App</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- <script src="/socket.io/socket.io.js"></script> -->
+    <script src="http://127.0.0.1:3000/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
@@ -143,6 +143,9 @@
     </div>
 
     <script>
+        // Establish a connection with the server using Sockets
+        const socket = io('http://127.0.0.1:3000/');
+
         // Chat interface - Simulate opening the chat interface when a card is clicked
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('click', function () {
@@ -207,69 +210,28 @@
             chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
         }
 
-        // Function to send a message
+        // Listen for 'chat message' event from the server
+        socket.on('chat message', function(msg) {
+            console.log('Message received: ', msg);
+            // You can call a function here to handle the incoming message,
+            // for example, display it in the chat window
+            if (msg.role && msg.role === 'assistant') {
+                addChatMessage(msg.content, 'ai');
+            }
+        });
 
-        //  const socket = io();
-
-        const sendMessage = async () => {
+        // Send message to the server on 'send' button click or 'Enter' key press in the chat input
+        const sendMessage = () => {
             const message = chatInput.value.trim();
             if (message === '') return;
 
-            // Display the user's message
+            // Display the user's message on the chat interface
             addChatMessage(message, 'user');
             chatInput.value = '';
 
-            try {
-                // Get and display the AI response
-                const response = await getAIResponse(message);
-                addChatMessage(response, 'ai'); // Ensure this function correctly displays the message
-            } catch (error) {
-                console.error('Error getting AI response:', error);
-            }
-
+            // Emit the message to the server
             socket.emit('chat message', message);
-
         };
-
-        // Function to get a response from OpenAI (placeholder)
-        const getAIResponse = async (message) => {
-            // Placeholder: Replace this with a call to OpenAI's API
-            return askAI(message);
-        };
-
-        function askAI(message) {
-            return new Promise((resolve, reject) => {
-                fetch('http://127.0.0.1:3000/scenario/over-a-phone-call', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: message }),
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        const messages = data.reply;
-                        const foundAssistantMessage = messages.data.find(obj => obj.role === "assistant");
-                        console.log(foundAssistantMessage.content);
-                        // Resolve the promise with the reply
-                        if (foundAssistantMessage.content.length === 1) {
-                            resolve(foundAssistantMessage.content[0].text.value);
-                        } else {
-                            resolve(foundAssistantMessage.content[0].text.value + foundAssistantMessage.content[1].text.value);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        reject(error); // Reject the promise on error
-                    });
-            });
-        }
-
 
         // Event listeners for sending messages
         sendButton.addEventListener('click', sendMessage);
