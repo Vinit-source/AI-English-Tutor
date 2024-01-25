@@ -116,7 +116,7 @@ body {
   position: relative; /* Ensure this is set to contain the absolute canvas */
   flex: 1;
   padding: 10px;
-  overflow-y: auto;
+  overflow: auto;
   height: 90vh;
   z-index: 50;
 }
@@ -129,8 +129,7 @@ body {
   height: 100%;
   background-color: white; /* Set the background color to white (or any other color) */
   z-index: -1;
-  overflow-y: scroll;
-  
+
 }
 
 .chat-input-container {
@@ -199,6 +198,17 @@ body {
   border-radius: 5px;
   margin: 10px;
   padding: 10px;
+}
+
+.ai-message div {
+  color: green;
+  text-align: left;
+  background-color: #f4fff0;
+  margin-bottom: 10px;
+}
+
+.ai-tamil-message {
+  display: none;
 }
 
 @media (max-width: 600px) {

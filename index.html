@@ -197,19 +197,68 @@
 
         // Function to add the chat message to the chat messages div
         function addChatMessage(chatText, sender) {
+            console.log("Adding message:", chatText, "Sender:", sender); // Check what's being added
             // Create a new chat message element
             var newChatMessage = document.createElement('div');
             newChatMessage.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
-            newChatMessage.textContent = chatText;
+
+            if (sender === 'user') {
+                newChatMessage.textContent = chatText;
+            } else {
+
+                console.log("ChatText:" + chatText);
+
+                const regex = /\((.*?)\)/g;
+
+                let tamilText = "";
+                let matches;
+                while ((matches = regex.exec(chatText)) !== null) {
+                    tamilText += matches[1] + " ";
+                }
+                // Removing the substrings from the original string
+                const englishText = chatText.replace(regex, "").trim();
+
+
+                // Add English message and append to ai-message
+                var englishMessage = document.createElement('div');
+                englishMessage.textContent = englishText; // Use '=' instead of '()'
+
+                // Style the English message (optional)
+                englishMessage.style.display = 'flex';
+                englishMessage.style.justifyContent = 'space-between';
+                englishMessage.style.alignItems = 'center';
+
+                // Create the hint icon button
+                var hintButton = document.createElement('button');
+                hintButton.innerHTML = '💡'; // Using a bulb emoji as an example icon
+                hintButton.style.marginLeft = '10px';
+
+                // Append the hint button to the English message div
+                englishMessage.appendChild(hintButton);
+
+                // Append to new chat message
+                newChatMessage.appendChild(englishMessage);
+
+                // Add Tamil message and append to ai-message
+                var tamilMessage = document.createElement('div');
+                tamilMessage.classList.add('ai-tamil-message');
+                tamilMessage.textContent = tamilText;
+                console.log("Outer:");
+                console.log(tamilText);
+                console.log(tamilMessage);
+                newChatMessage.appendChild(tamilMessage);
+
+                hintButton.addEventListener('click', (event) => {
+                    console.log("Inner:");
+                    console.log(tamilMessage);
+                    tamilMessage.style.display = tamilMessage.style.display === 'none' ? 'block' : 'none';
+                })
+            }
 
             // Append the new chat message element to the chat-messages div
             chatMessagesDiv.appendChild(newChatMessage);
             chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
         }
-
-        // Function to send a message
-
-        //  const socket = io();
 
         const sendMessage = async () => {
             const message = chatInput.value.trim();
@@ -232,23 +281,26 @@
         const getAIResponse = async (message) => {
             // Placeholder: Replace this with a call to OpenAI's API
             const response = await askAI(message);
+
+            // Mark objective as completed 
+            modifiedResponse = markComplete(response);
+
+            // Return the modified response
+            return modifiedResponse.trim();
+        };
+
+        // Marks the objectives as complete when objective no. appears in AI's message.
+        // Extracts the objective nos. and return the proper message as `modifiedResponse`.
+        function markComplete(response) {
+
             // Regular expression for finding [digit] patterns
-            const regex = /\s\[\d+\]/g;
+            const regex = /\s?\[\d+\]/g;
 
             // Extracting the substrings
             const matches = response.match(regex) || [];
 
             // Removing the substrings from the original string
             const modifiedResponse = response.replace(regex, "");
-
-            // Mark objective as completed 
-            markComplete(matches);
-
-            // Return the modified response
-            return modifiedResponse;
-        };
-
-        function markComplete(matches) {
 
             // Get objective
             const ul = document.getElementById('checklistItems');
@@ -270,7 +322,11 @@
                     checkbox.checked = true;
                 }
             })
+
+            // Return the proper string
+            return modifiedResponse;
         }
+
 
         function askAI(message) {
             return new Promise((resolve, reject) => {
