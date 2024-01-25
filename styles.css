@@ -129,6 +129,8 @@ body {
   height: 100%;
   background-color: white; /* Set the background color to white (or any other color) */
   z-index: -1;
+  overflow-y: scroll;
+  
 }
 
 .chat-input-container {

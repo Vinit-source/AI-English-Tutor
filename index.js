@@ -13,6 +13,8 @@ const openai = new OpenAI({
 
 console.log(process.env['ASSISTANT_ID']);
 
+let messageCount = 0;
+
 app.post('/scenario/over-a-phone-call', async (req, res) => {
     try {
         const userMessage = req.body.message;
@@ -30,25 +32,25 @@ app.post('/scenario/over-a-phone-call', async (req, res) => {
 
         const thread = await openai.beta.threads.create();
 
-        scenarioInstructions = "Instructions: This is a phone call conversation scenario. You have to let me explore English through this conversation. You are my friend.\
+        scenarioInstructions = "The current thread is a phone call conversation scenario. You have to let the user explore English through this conversation. You are user's friend.\
 \
-These are the objectives that I should complete by the end of this short conversation:\
-1. Ask how are you\
-2. Ask how is everyone at your home\
-3. Ask how is work pressure\
+These are the objectives that <strong>the user</strong> should complete by the end of this short conversation:\
+1. Ask how you are\
+2. Ask how are everyone at your home\
+3. Ask how is your work pressure\
 4. Ask about your holiday plans for the weekend\
 \
-Throughout the conversation, you have to direct the conversation through your replies alone towards completion of these goals.\
+Once all goals are complete, take the conversation to an end. If you receive a '[S]' in user's message, conclude and end the conversation.\
 \
-When I fulfil any objective, just reply the number of the objective within [] in your next message and continue with the flow of the conversation. An objective is fulfilled only when I speak the right words related to that objective <strong>in English</strong>.";
+Important: When user fulfils any objective, just reply the number of the objective within [] in your next message and continue with the flow of the conversation. An objective is fulfilled only when user speaks the right words related to that objective <strong>in English</strong>.";
 
-        await openai.beta.threads.messages.create(
-            thread.id,
-            {
-                role: "user",
-                content: scenarioInstructions
-            }
-        );
+        // await openai.beta.threads.messages.create(
+        //     thread.id,
+        //     {
+        //         role: "user",
+        //         content: scenarioInstructions
+        //     }
+        // );
 
         // // Run the scenarioInstruction
         // console.log("Run the scenarioInstruction: " + assistant.id);
@@ -73,17 +75,26 @@ When I fulfil any objective, just reply the number of the objective within [] in
             thread.id,
             {
                 role: "user",
-                content: userMessage
+                content: messageCount > 39 ? "[S]" + userMessage : userMessage,
             }
         );
 
-        // Run the user message
-        run = await openai.beta.threads.runs.create(
-            thread.id,
-            {
-                assistant_id: assistant.id,
-            }
-        );
+        // Run the message
+        if (messageCount === 0) {
+            run = await openai.beta.threads.runs.create(
+                thread.id,
+                {
+                    assistant_id: assistant.id,
+                    additional_instructions: scenarioInstructions,
+                }
+            );
+        } else {
+            run = await openai.beta.threads.runs.create(
+                thread.id,
+                {
+                    assistant_id: assistant.id
+                });
+        }
 
         console.log(run);
 
@@ -99,7 +110,10 @@ When I fulfil any objective, just reply the number of the objective within [] in
             thread.id
         );
 
-        res.json({reply: messages}); // Send response back to HTTP client
+        messageCount = messages.data.length;
+        console.log(messageCount);
+
+        res.json({ reply: messages }); // Send response back to HTTP client
 
     } catch (error) {
         console.error("Error calling OpenAI API:", error);

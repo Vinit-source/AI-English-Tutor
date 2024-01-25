@@ -130,11 +130,11 @@
                     <ul class="list-disc list-inside text-sm text-gray-600 mt-1" id="checklistItems">
                         <li><input type="checkbox" id="item1"><label for="item1">Ask how is your friend doing</label>
                         </li>
-                        <li><input type="checkbox" id="item2"><label for="item1">Ask how is everyone at his home</label>
+                        <li><input type="checkbox" id="item2"><label for="item2">Ask how is everyone at his home</label>
                         </li>
-                        <li><input type="checkbox" id="item3"><label for="item2">Ask how is his work pressure</label>
+                        <li><input type="checkbox" id="item3"><label for="item3">Ask how is his work pressure</label>
                         </li>
-                        <li><input type="checkbox" id="item4"><label for="item3">Ask about his holiday plans for the
+                        <li><input type="checkbox" id="item4"><label for="item4">Ask about his holiday plans for the
                                 weekend</label></li>
                     </ul>
                 </div>
@@ -231,8 +231,46 @@
         // Function to get a response from OpenAI (placeholder)
         const getAIResponse = async (message) => {
             // Placeholder: Replace this with a call to OpenAI's API
-            return askAI(message);
+            const response = await askAI(message);
+            // Regular expression for finding [digit] patterns
+            const regex = /\s\[\d+\]/g;
+
+            // Extracting the substrings
+            const matches = response.match(regex) || [];
+
+            // Removing the substrings from the original string
+            const modifiedResponse = response.replace(regex, "");
+
+            // Mark objective as completed 
+            markComplete(matches);
+
+            // Return the modified response
+            return modifiedResponse;
         };
+
+        function markComplete(matches) {
+
+            // Get objective
+            const ul = document.getElementById('checklistItems');
+            const liArray = Array.from(ul.querySelectorAll('li'));
+            // Iterate over the matches array
+            matches.forEach(match => {
+                // Extract the number from the string, removing spaces and brackets
+                const matchNumber = match.match(/\d+/)[0];
+
+                // Construct the checkbox's id based on the extracted number
+                const checkboxId = `item${matchNumber}`;
+
+                // Get the checkbox element
+                const checkbox = document.getElementById(checkboxId);
+
+                // Check if the checkbox exists
+                if (checkbox) {
+                    // Mark the checkbox as checked
+                    checkbox.checked = true;
+                }
+            })
+        }
 
         function askAI(message) {
             return new Promise((resolve, reject) => {
