@@ -11,18 +11,20 @@ const openai = new OpenAI({
     apiKey: process.env['OPENAI_API_KEY'],
 });
 
+console.log(process.env['ASSISTANT_ID']);
+
 app.post('/scenario/over-a-phone-call', async (req, res) => {
     try {
+        const userMessage = req.body.message;
 
         // OpenAI API initializations
         const openai = new OpenAI({
             apiKey: process.env['OPENAI_API_KEY'],
         });
 
+        console.log(process.env['ASSISTANT_ID']);
         // OpenAI interaction logic
-        const assistant = await openai.beta.assistants.retrieve({
-            id: process.env['ASSISTANT_ID'],
-        });
+        const assistant = await openai.beta.assistants.retrieve(process.env['ASSISTANT_ID']);
 
         console.log("After initialization: " + assistant.id);
 
@@ -48,24 +50,24 @@ When I fulfil any objective, just reply the number of the objective within [] in
             }
         );
 
-        // Run the scenarioInstruction
-        console.log("Run the scenarioInstruction: " + assistant.id);
-        let run = await openai.beta.threads.runs.create(
-            thread.id,
-            {
-                assistant_id: assistant.id,
-            }
-        );
+        // // Run the scenarioInstruction
+        // console.log("Run the scenarioInstruction: " + assistant.id);
+        // let run = await openai.beta.threads.runs.create(
+        //     thread.id,
+        //     {
+        //         assistant_id: assistant.id,
+        //     }
+        // );
 
-        console.log(run);
+        // console.log(run);
 
-        while (run.status !== "completed") {
-            run = await openai.beta.threads.runs.retrieve(
-                thread.id,
-                run.id
-            );
-            console.log(run.status);
-        }
+        // while (run.status !== "completed") {
+        //     run = await openai.beta.threads.runs.retrieve(
+        //         thread.id,
+        //         run.id
+        //     );
+        //     console.log(run.status);
+        // }
 
         await openai.beta.threads.messages.create(
             thread.id,
@@ -76,7 +78,6 @@ When I fulfil any objective, just reply the number of the objective within [] in
         );
 
         // Run the user message
-        console.log("Run the user message: " + assistant.id);
         run = await openai.beta.threads.runs.create(
             thread.id,
             {
@@ -98,7 +99,7 @@ When I fulfil any objective, just reply the number of the objective within [] in
             thread.id
         );
 
-        res.json(messages); // Send response back to HTTP client
+        res.json({reply: messages}); // Send response back to HTTP client
 
     } catch (error) {
         console.error("Error calling OpenAI API:", error);
