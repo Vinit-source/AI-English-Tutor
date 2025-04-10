@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "builds": [
+      { "src": "api/app.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      {
+        "src": "/scenario/over-a-phone-call",
+        "dest": "/api/app.js"
+      }
+    ]
+  }
