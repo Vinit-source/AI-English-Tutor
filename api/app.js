@@ -9,7 +9,7 @@ app.use(cors());
 
 // Global conversation state
 let conversation = [];
-const messageLimit = 8; // Maximum messages allowed before conversation is ended
+const messageLimit = 20; // Maximum messages allowed before conversation is ended
 let messageCount = 0;
 let stop = false;
 
