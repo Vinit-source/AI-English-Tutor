@@ -39,9 +39,23 @@
     <div class="max-w-md mx-auto" id="main">
         <div id="overlay"></div>
         <!-- Header with tabs -->
+        <div class="text-center my-3">
+            <h1 class="text-2xl font-bold text-gray-800">AI English Tutor</h1>
+        </div>
         <div class="flex justify-between bg-white p-4 rounded-t-lg shadow">
             <div class="font-semibold text-gray-800">Roleplay</div>
-            <!-- <div class="font-semibold text-gray-400">Free Talk</div> -->
+            <select id="language-select" class="language-select" required>
+                <option value="none" disabled selected>Your language</option>
+                <option value="hindi" selected>Hindi</option>
+                <option value="marathi">Marathi</option>
+                <option value="gujarati">Gujarati</option>
+                <option value="bengali">Bengali</option>
+                <option value="tamil">Tamil</option>
+                <option value="telugu">Telugu</option>
+                <option value="kannada">Kannada</option>
+                <option value="malayalam">Malayalam</option>
+            </select>
+
         </div>
 
         <!-- Cards container -->
@@ -103,27 +117,14 @@
     <div id="chat-container" class="chat-container">
         <div class="chat-header">
             <span class="chat-title">Over a phone call</span>
-            <select id="language-select" class="language-select" required>
-                <option value="none" disabled selected>Your language</option>
-                <option value="hindi">Hindi</option>
-                <option value="hinglish">Hinglish</option>
-                <option value="marathi">Marathi</option>
-                <option value="gujarati">Gujarati</option>
-                <option value="bengali">Bengali</option>
-                <option value="tamil">Tamil</option>
-                <option value="tanglish">Tanglish</option>
-                <option value="telugu">Telugu</option>
-                <option value="kannada">Kannada</option>
-                <option value="malayalam">Malayalam</option>
-              </select>
-              
-              <select id="llm-model" class="llm-model" required>
+
+            <select id="llm-model" class="llm-model" required>
                 <option value="none" disabled selected>LLM Model</option>
                 <option value="mistral">Mistral</option>
-                <option value="gemini">Gemini</option>
+                <option value="gemini" selected>Gemini</option>
                 <option value="deepseek">Deepseek</option>
                 <option value="nemotron">NVIDIA Nemotron</option>
-              </select>
+            </select>
             <button id="objectives-btn" class="objectives-btn">☰</button>
         </div>
         <div class="chat-messages" id="chat-messages">
