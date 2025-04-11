@@ -103,16 +103,26 @@
     <div id="chat-container" class="chat-container">
         <div class="chat-header">
             <span class="chat-title">Over a phone call</span>
-            <select id="language-select" class="language-select">
+            <select id="language-select" class="language-select" required>
                 <option value="none" disabled selected>Your language</option>
-                <option value="ta">Tamil</option>
-                <option value="hi" selected>Hindi</option>
+                <option value="hindi">Hindi</option>
+                <option value="hinglish">Hinglish</option>
+                <option value="marathi">Marathi</option>
+                <option value="gujarati">Gujarati</option>
+                <option value="bengali">Bengali</option>
+                <option value="tamil">Tamil</option>
+                <option value="tanglish">Tanglish</option>
+                <option value="telugu">Telugu</option>
+                <option value="kannada">Kannada</option>
+                <option value="malayalam">Malayalam</option>
               </select>
               
-              <select id="llm-model" class="llm-model">
+              <select id="llm-model" class="llm-model" required>
                 <option value="none" disabled selected>LLM Model</option>
-                <option value="mistral" selected>Mistral</option>
+                <option value="mistral">Mistral</option>
                 <option value="gemini">Gemini</option>
+                <option value="deepseek">Deepseek</option>
+                <option value="nemotron">NVIDIA Nemotron</option>
               </select>
             <button id="objectives-btn" class="objectives-btn">☰</button>
         </div>

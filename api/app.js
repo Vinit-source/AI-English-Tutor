@@ -23,7 +23,7 @@ async function callLLM(provider, messages, options = {}) {
                 return await callMistralAPI(apiKey, model, messages, options);
             }
             case 'openai': {
-                const apiKey = process.env.OPENAI_API_KEY;
+                const apiKey = process.env.OPENROUTER_API_KEY;
                 const model = 'gpt-3.5-turbo'; // Or another OpenAI model
                 return await callOpenAIAPI(apiKey, model, messages, options);
             }
@@ -31,6 +31,16 @@ async function callLLM(provider, messages, options = {}) {
                 const apiKey = process.env.GEMINI_API_KEY;
                 const model = 'gemini-2.0-flash'; // Or another Gemini model
                 return await callGeminiAPI(apiKey, model, messages, options);
+            }
+            case 'deepseek': {
+                const apiKey = process.env.OPENROUTER_API_KEY;
+                const model = 'deepseek/deepseek-r1:free'; // Or another model
+                return await callOpenRouterAPI(apiKey, model, messages, options);
+            }
+            case 'nemotron': {
+                const apiKey = process.env.OPENROUTER_API_KEY;
+                const model = 'nvidia/llama-3.1-nemotron-nano-8b-v1:free';
+                return await callOpenRouterAPI(apiKey, model, messages, options);
             }
             default:
                 throw new Error(`Unsupported provider: ${provider}`);
@@ -92,14 +102,24 @@ async function callGeminiAPI(apiKey, model, messages, options = {}) {
           : "No valid response received from Gemini.";
 }
 
+// OpenRouter API function: Uses a free multilingual model optimized for conversation.
+async function callOpenRouterAPI(apiKey, model, messages, options = {}) {
+    const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        { model, messages, ...options },
+        { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } }
+    );
+    return response.data.choices[0].message.content;
+}
+
 app.post('/scenario/over-a-phone-call', async (req, res) => {
     try {
         if (stop) {
             return res.status(400).json({ error: "Conversation ended due to message limit exceeded." });
         }
         const userMessage = req.body.message;
-        const userLanguage = req.body.language || 'Hindi';
-        const llmModel = req.body.model || 'mistral';
+        const userLanguage = req.body.language || 'English';
+        const llmModel = req.body.model || 'mistral'; // Default to Mistral if no model is specified
 
         // Add the system prompt only once at the beginning
         if (conversation.length === 0) {
