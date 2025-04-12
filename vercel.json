@@ -5,7 +5,7 @@
     ],
     "routes": [
       {
-        "src": "/scenario/over-a-phone-call",
+        "src": "/api/(.*)",
         "dest": "/api/app.js"
       }
     ]
