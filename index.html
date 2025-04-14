@@ -360,7 +360,7 @@
         function askAI(message, userLanguage, llmModel) {
             return new Promise((resolve, reject) => {
                 // const baseUrl = 'http://localhost:3000';
-                const baseUrl = `https://ai-english-tutor-opal.vercel.app/`;
+                const baseUrl = `https://ai-english-tutor-opal.vercel.app`;
                 fetch(`${baseUrl}/api/scenario/over-a-phone-call`, {
                     method: 'POST',
                     headers: {
