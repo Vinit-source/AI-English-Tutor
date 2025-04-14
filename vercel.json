@@ -7,6 +7,17 @@
       {
         "src": "/api/(.*)",
         "dest": "/api/app.js"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
       }
-    ]
-  }
+    ],
+    "projectSettings": {
+        "framework": "null",
+        "buildCommand": "",
+        "outputDirectory": "",
+        "installCommand": "npm install",
+        "devCommand": "npm run dev"
+    }
+}
