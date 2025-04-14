@@ -43,6 +43,11 @@ async function callLLM(provider, messages, options = {}) {
                 const model = 'nvidia/llama-3.1-nemotron-nano-8b-v1:free';
                 return await callOpenRouterAPI(apiKey, model, messages, options);
             }
+            case 'llama4': {
+                const apiKey = process.env.KRUTIM_API_KEY;
+                const model = 'Llama-4-Scout-17B-16E-Instruct';
+                return await callKrutimAPI(apiKey, model, messages, options);
+            }
             default:
                 throw new Error(`Unsupported provider: ${provider}`);
         }
@@ -112,6 +117,18 @@ async function callOpenRouterAPI(apiKey, model, messages, options = {}) {
     );
     return response.data.choices[0].message.content;
 }
+
+// OlaKrutim API function:
+async function callKrutimAPI(apiKey, model, messages, options = {}) {
+    const response = await axios.post(
+        'https://cloud.olakrutrim.com/v1/chat/completions',
+        { model, messages, ...options },
+        { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } }
+    );
+    return response.data.choices[0].message.content;
+}
+
+
 app.get('/api/scenario/over-a-phone-call', (req, res) => {
     res.json({ message: "Welcome to the phone call scenario! Please send a POST request to /api/scenario/over-a-phone-call with your message." });
 });
