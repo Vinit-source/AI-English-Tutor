@@ -111,8 +111,11 @@ async function callOpenRouterAPI(apiKey, model, messages, options = {}) {
     );
     return response.data.choices[0].message.content;
 }
+app.get('/api/scenario/over-a-phone-call', (req, res) => {
+    res.json({ message: "Welcome to the phone call scenario! Please send a POST request to /api/scenario/over-a-phone-call with your message." });
+});
 
-app.post('/scenario/over-a-phone-call', async (req, res) => {
+app.post('/api/scenario/over-a-phone-call', async (req, res) => {
     try {
         if (stop) {
             return res.status(400).json({ error: "Conversation ended due to message limit exceeded." });
