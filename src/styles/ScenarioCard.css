@@ -1,0 +1,198 @@
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  padding: 1rem;
+  overflow: hidden;
+  text-align: center;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card img {
+  width: 100%;
+  max-width: 50px;
+  height: auto;
+  margin-bottom: 0.5rem;
+}
+
+.image-placeholder {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--neutral-500);
+  background-color: var(--neutral-200);
+  border-radius: var(--radius-full);
+  transition: all 0.3s ease;
+}
+
+.scenario-card:hover .image-placeholder {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.scenario-card {
+  position: relative;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  cursor: pointer;
+  border: 1px solid var(--neutral-200);
+  text-align: center;
+  height: 100%;
+}
+
+.scenario-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-light);
+}
+
+.scenario-card:active {
+  transform: translateY(0);
+}
+
+.scenario-img-container {
+  width: 80px;
+  height: 80px;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--neutral-100);
+  padding: var(--space-3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.scenario-card:hover .scenario-img-container {
+  background-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.scenario-card img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07));
+}
+
+.scenario-card:hover img {
+  filter: brightness(0) invert(1);
+}
+
+.scenario-title {
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  color: var(--neutral-800);
+  margin-bottom: var(--space-2);
+  transition: color 0.3s ease;
+}
+
+.scenario-card:hover .scenario-title {
+  color: var(--primary-color);
+}
+
+.scenario-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--neutral-100);
+  color: var(--neutral-600);
+}
+
+.status-free {
+  background-color: var(--success);
+  color: white;
+}
+
+/* Animation for card entrance */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scenario-card {
+  animation: cardAppear 0.5s ease-out forwards;
+}
+
+.scenario-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scenario-icon svg {
+  width: 32px;
+  height: 32px;
+  transition: all 0.3s ease;
+}
+
+.scenario-card:hover .scenario-icon svg {
+  stroke: white;
+  transform: scale(1.1);
+}
+
+.scenario-description {
+  font-size: var(--font-size-sm);
+  color: var(--neutral-700); /* Darker for better readability */
+  margin: var(--space-2) 0 var(--space-4);
+  line-height: 1.5;
+}
+
+.scenario-start-btn {
+  background-color: var(--primary-dark); /* Darker for better contrast */
+  color: white;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md); /* Changed from full radius */
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-top: auto;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  width: 80%; /* Make the button a consistent width */
+}
+
+.scenario-card:hover .scenario-start-btn {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
