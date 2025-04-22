@@ -4,7 +4,17 @@ import '../styles/ChatMessage.css';
 const ChatMessage = ({ type, content, isPractice = false }) => {
   const [showTranslation, setShowTranslation] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
-  
+
+  // Format the time with a more readable format and better contrast
+  const formatMessageTime = () => {
+    const options = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true // Use 12-hour format with AM/PM
+    };
+    return new Date().toLocaleTimeString([], options);
+  };
+
   // For AI "thinking" indicator
   if (type === 'thinking') {
     return (
@@ -20,7 +30,7 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
       </div>
     );
   }
-  
+
   // For user messages
   if (type === 'user') {
     return (
@@ -28,13 +38,13 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
         <div className={`user-message-content ${isPractice ? 'is-practice' : ''}`}>
           {content}
           <div className="message-time">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatMessageTime()}
           </div>
         </div>
       </div>
     );
   }
-  
+
   // For AI messages
   if (type === 'ai') {
     // Extract translation part
@@ -42,15 +52,15 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
     let translatedText = "";
     let matches;
     let englishText = content;
-    
+
     // Extract translations
     while ((matches = translationRegex.exec(content)) !== null) {
       translatedText += matches[1] + " ";
     }
-    
+
     // Remove translations from the English text
     englishText = content.replace(translationRegex, "").trim();
-    
+
     // Check for correction pattern
     // Look for phrases like "you should say", "correct way to say", "try saying" etc.
     const correctionPatterns = [
@@ -58,26 +68,26 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
       "we usually say", "it's better to say", "more natural to say",
       "you can say", "correct sentence is"
     ];
-    
+
     let hasCorrection = false;
     let englishMain = englishText;
     let correctionText = "";
-    
+
     correctionPatterns.forEach(pattern => {
       if (englishText.toLowerCase().includes(pattern.toLowerCase())) {
         hasCorrection = true;
-        
+
         // Split at the correction point and extract the suggested correction
         const parts = englishText.split(new RegExp(pattern, 'i'));
-        
+
         if (parts.length > 1) {
           englishMain = parts[0].trim();
-          
+
           // Extract the correction from the second part
           // Look for text in quotes or just take the next phrase
           const secondPart = parts[1];
           const quoteMatch = secondPart.match(/["'](.*?)["']/);
-          
+
           if (quoteMatch) {
             correctionText = quoteMatch[1].trim();
           } else {
@@ -87,7 +97,7 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
         }
       }
     });
-    
+
     return (
       <div className="ai-message">
         <div className="message-avatar ai-avatar">AI</div>
@@ -95,7 +105,7 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
           {/* Main English response */}
           <div className="english-message">
             {englishMain}
-            
+
             {/* Translation toggle button */}
             {translatedText && (
               <button
@@ -104,11 +114,11 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
                 aria-label={showTranslation ? "Hide translation" : "Show translation"}
                 title={showTranslation ? "Hide translation" : "Show translation"}
               >
-                🌐
+                💡
               </button>
             )}
           </div>
-          
+
           {/* Correction section */}
           {hasCorrection && (
             <div className="correction-section">
@@ -118,7 +128,7 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
                   {showCorrection ? '▼' : '▶'}
                 </button>
               </div>
-              
+
               {showCorrection && (
                 <div className="correction-text">
                   <span className="correct-phrase">"{correctionText}"</span>
@@ -138,22 +148,22 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
               )}
             </div>
           )}
-          
+
           {/* Translation section */}
           {translatedText && showTranslation && (
             <div className="translation-message">
               {translatedText}
             </div>
           )}
-          
+
           <div className="message-time">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatMessageTime()}
           </div>
         </div>
       </div>
     );
   }
-  
+
   // Default fallback
   return <div className={`${type}-message`}>{content}</div>;
 };

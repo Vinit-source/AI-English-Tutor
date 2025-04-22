@@ -82,21 +82,22 @@
 }
 
 .home-container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-2); /* Reduced horizontal padding */
   background-color: var(--neutral-50);
 }
 
 .header {
   text-align: center;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6); /* Reduced from space-8 */
+  padding: 0 var(--space-2);
 }
 
 .app-title {
   font-size: var(--font-size-3xl);
   font-weight: 700;
-  color: var(--primary-dark); /* Darker for better contrast */
+  color: var(--primary-dark);
   margin-bottom: var(--space-2);
   position: relative;
   display: inline-block;
@@ -116,8 +117,8 @@
 
 .app-subtitle {
   font-size: var(--font-size-lg);
-  color: var(--neutral-700); /* Darker for better readability */
-  margin-top: var(--space-4);
+  color: var(--neutral-700);
+  margin-top: var(--space-3); /* Reduced from space-4 */
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
@@ -128,11 +129,12 @@
   justify-content: space-between;
   align-items: center;
   background-color: white;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4); /* Reduced vertical padding */
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--neutral-200);
   border-bottom: none;
+  margin: 0 var(--space-2); /* Add horizontal margin */
 }
 
 .panel-title {
@@ -171,18 +173,19 @@
 
 .scenarios-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-4);
-  padding: var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Adjusted size for better fit */
+  gap: var(--space-3); /* Reduced from space-4 */
+  padding: var(--space-4); /* Reduced from space-6 */
   background-color: white;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--neutral-200);
+  margin: 0 var(--space-2); /* Add horizontal margin */
 }
 
 .home-footer {
-  margin-top: var(--space-8);
-  padding: var(--space-4);
+  margin-top: var(--space-4); /* Reduced from space-8 */
+  padding: var(--space-3);
   text-align: center;
   color: var(--neutral-500);
   font-size: var(--font-size-sm);
@@ -192,8 +195,8 @@
 @media (max-width: 768px) {
   .scenarios-container {
     grid-template-columns: repeat(2, 1fr);
-    padding: var(--space-4);
-    gap: var(--space-3);
+    padding: var(--space-3);
+    gap: var(--space-2);
   }
   
   .app-title {
@@ -218,6 +221,12 @@
   
   .language-select {
     width: 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .scenarios-container {
+    grid-template-columns: repeat(3, 1fr); /* Force 3 columns on larger screens */
   }
 }
 

@@ -21,8 +21,7 @@
   --success: #16a34a; /* Slightly darker green */
   --info: #2563eb; /* Slightly darker blue */
   
-  /* Typography */
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Enhanced font sizes for better readability */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -76,7 +75,9 @@
   box-sizing: border-box;
 }
 
+/* Additional global styles for better readability */
 body {
+  line-height: 1.6; /* Slightly increased line height for better readability */
   margin: 0;
   display: flex;
   min-width: 320px;

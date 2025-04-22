@@ -3,7 +3,7 @@
   justify-content: flex-end;
   margin: var(--space-3) 0;
   animation: messageSlideIn 0.3s ease forwards;
-  max-width: 85%; /* Control maximum width of message container */
+  max-width: 90%; /* Increased from 85% for better space utilization */
   margin-left: auto;
 }
 
@@ -12,7 +12,7 @@
   color: white;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg) var(--radius-lg) 0 var(--radius-lg);
-  max-width: 85%; /* Control maximum width of message content */
+  max-width: 90%; /* Increased from 85% for better space utilization */
   box-shadow: var(--shadow-md);
   position: relative;
   overflow-wrap: break-word;
@@ -29,7 +29,7 @@
   justify-content: flex-start;
   margin: var(--space-3) 0;
   animation: messageSlideIn 0.3s ease forwards;
-  max-width: 85%; /* Control maximum width of message container */
+  max-width: 90%; /* Increased from 85% for better space utilization */
 }
 
 .ai-message-content {
@@ -37,7 +37,7 @@
   color: var(--neutral-800);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 0;
-  max-width: 85%; /* Control maximum width of message content */
+  max-width: 90%; /* Increased from 85% for better space utilization */
   box-shadow: var(--shadow-md);
   position: relative;
   overflow-wrap: break-word;
@@ -153,28 +153,39 @@
   font-size: var(--font-size-sm);
   border-left: 3px solid var(--primary-light);
   animation: fadeIn 0.3s ease;
+  text-align: left !important; /* Ensure left alignment with !important */
+  direction: ltr; /* Explicitly set left-to-right direction */
+  width: 100%; /* Ensure it takes the full width available */
+  display: block; /* Change to block display to ensure proper alignment */
 }
 
 .hint-button {
   background: none;
   border: none;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--neutral-500);
   margin-left: var(--space-2);
   transition: all 0.2s ease;
   flex-shrink: 0;
+  color: inherit;
+  font-size: 18px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .hint-button:hover {
-  background-color: var(--primary-light);
-  color: white;
-  transform: rotate(15deg);
+  transform: scale(1.2);
+}
+
+.hint-button:active {
+  transform: scale(0.95);
 }
 
 .toggle-btn {
@@ -222,9 +233,14 @@
 /* Time indicator for messages */
 .message-time {
   font-size: var(--font-size-xs);
-  color: var(--neutral-500);
+  color: rgba(0, 0, 0, 0.45); /* Darker color for better visibility */
   margin-top: var(--space-1);
   text-align: right;
+  font-weight: 500; /* Make timestamps slightly bolder */
+}
+
+.user-message-content .message-time {
+  color: rgba(255, 255, 255, 0.8); /* Lighter color for better visibility on dark background */
 }
 
 /* Message avatar */

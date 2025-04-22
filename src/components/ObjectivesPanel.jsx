@@ -5,7 +5,6 @@ const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) =
   const [progress, setProgress] = useState(0);
   
   useEffect(() => {
-    // Calculate progress percentage
     const completedCount = objectives.filter(obj => obj.completed).length;
     const totalCount = objectives.length;
     const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;

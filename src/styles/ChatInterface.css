@@ -7,7 +7,7 @@
   right: 0;
   bottom: 0;
   flex-direction: column;
-  max-width: 800px; /* Reduced from 1080px for better readability */
+  max-width: 900px; /* Increased from 800px for better readability */
   margin: auto;
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -25,6 +25,11 @@
   color: white;
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+}
+
 .chat-title {
   font-size: var(--font-size-xl);
   font-weight: 700;
@@ -32,6 +37,34 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.back-button {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: var(--space-3);
+  padding: 0;
+}
+
+.back-button:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: translateX(-3px);
+}
+
+.back-button::before {
+  content: '◀'; /* Changed to a more visible and appropriate left arrow */
+  font-weight: 900;
+  font-size: 1.2em;
 }
 
 .chat-title::before {
@@ -54,22 +87,32 @@
   padding: var(--space-2) var(--space-3);
   border: none;
   border-radius: var(--radius-md);
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.25); /* Increased opacity for better visibility */
   color: white;
   font-size: var(--font-size-sm);
+  font-weight: 600; /* Increased font weight for better visibility */
   cursor: pointer;
   transition: background-color 0.2s ease;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+  min-width: 120px; /* Ensure minimum width */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Add subtle shadow for depth */
 }
 
 .llm-model:hover {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
 }
 
 .llm-model:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6); /* Brighter outline for better visibility */
+}
+
+.llm-model option {
+  background-color: var(--primary-dark);
+  color: white;
+  font-weight: 500;
 }
 
 .objectives-btn {
@@ -99,6 +142,33 @@
   overflow-y: auto;
   background-color: var(--neutral-100); /* Slightly darker background for better contrast */
   scroll-behavior: smooth;
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: var(--primary-light) var(--neutral-200); /* For Firefox */
+}
+
+/* Custom scrollbar for Webkit browsers (Chrome, Safari, newer Edge) */
+.chat-messages::-webkit-scrollbar {
+  width: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: var(--neutral-200);
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background-color: var(--primary-light);
+  border-radius: 10px;
+  border: 2px solid var(--neutral-200);
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-color);
+}
+
+/* Hide scrollbar buttons/arrows */
+.chat-messages::-webkit-scrollbar-button {
+  display: none;
 }
 
 #chatCanvas {
@@ -174,9 +244,11 @@
 }
 
 .chat-input-container button::after {
-  content: '→';
-  font-size: 1.2em;
+  content: '▶'; /* Changed to a more visible and appropriate right arrow */
+  font-size: 1.4em;
+  font-weight: 900;
   transition: transform 0.2s ease;
+  margin-left: 2px;
 }
 
 .chat-input-container button:hover:not(:disabled)::after {
@@ -288,7 +360,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 900px) {
+@media (max-width: 1000px) { /* Increased from 900px to match new container width */
   .chat-container {
     max-width: 100%;
     left: 0;

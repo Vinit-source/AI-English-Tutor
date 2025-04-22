@@ -518,23 +518,35 @@ const ChatInterface = () => {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <span className="chat-title">{scenario.replace(/-/g, ' ')}</span>
-        <select
-          value={llmModel}
-          onChange={(e) => setLlmModel(e.target.value)}
-          className="llm-model"
-        >
-          <option value="mistral">Mistral</option>
-          <option value="gemini">Gemini</option>
-          <option value="deepseek">Deepseek</option>
-          <option value="nemotron">NVIDIA Nemotron</option>
-        </select>
-        <button
-          className="objectives-btn"
-          onClick={() => setShowObjectives(!showObjectives)}
-        >
-          ☰
-        </button>
+        <div className="header-content">
+          <button 
+            className="back-button" 
+            onClick={() => navigate('/')}
+            aria-label="Go back to home"
+            title="Back to home page"
+          ></button>
+          <span className="chat-title">{scenario.replace(/-/g, ' ')}</span>
+        </div>
+        <div className="chat-controls">
+          <select
+            value={llmModel}
+            onChange={(e) => setLlmModel(e.target.value)}
+            className="llm-model"
+            aria-label="Select AI model"
+          >
+            <option value="mistral">Mistral</option>
+            <option value="gemini">Gemini</option>
+            <option value="deepseek">Deepseek</option>
+            <option value="nemotron">NVIDIA Nemotron</option>
+          </select>
+          <button
+            className="objectives-btn"
+            onClick={() => setShowObjectives(!showObjectives)}
+            aria-label="Toggle objectives panel"
+          >
+            ☰
+          </button>
+        </div>
       </div>
       
       <div className="chat-messages" ref={chatMessagesRef}>
