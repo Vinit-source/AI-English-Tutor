@@ -1,0 +1,264 @@
+.user-message {
+  display: flex;
+  justify-content: flex-end;
+  margin: var(--space-3) 0;
+  animation: messageSlideIn 0.3s ease forwards;
+  max-width: 90%; /* Increased from 85% for better space utilization */
+  margin-left: auto;
+}
+
+.user-message-content {
+  background-color: var(--primary-dark); /* Darker for better contrast */
+  color: white;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 var(--radius-lg);
+  max-width: 90%; /* Increased from 85% for better space utilization */
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.user-message-content.is-practice {
+  background-color: var(--warning);
+}
+
+.ai-message {
+  display: flex;
+  justify-content: flex-start;
+  margin: var(--space-3) 0;
+  animation: messageSlideIn 0.3s ease forwards;
+  max-width: 90%; /* Increased from 85% for better space utilization */
+}
+
+.ai-message-content {
+  background-color: white;
+  color: var(--neutral-800);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 0;
+  max-width: 90%; /* Increased from 85% for better space utilization */
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.ai-message-content.has-correction {
+  border-left: 3px solid var(--warning);
+}
+
+.english-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-2);
+  line-height: 1.5;
+}
+
+.correction-section {
+  margin-top: var(--space-3);
+  border-top: 1px dashed var(--neutral-300);
+  padding-top: var(--space-2);
+}
+
+.correction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  color: var(--warning);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) 0;
+  transition: all 0.2s ease;
+}
+
+.correction-header:hover {
+  color: var(--primary-color);
+}
+
+.correction-text {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--neutral-50); /* Lighter background for better contrast */
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s ease;
+  border: 1px solid var(--warning); /* Add border for better visibility */
+}
+
+.correct-phrase {
+  font-weight: 500;
+  color: var(--neutral-800);
+  position: relative;
+  padding: 2px 0;
+}
+
+.correct-phrase::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--warning);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  transform-origin: left;
+}
+
+.correction-text:hover .correct-phrase::after {
+  transform: scaleX(1);
+}
+
+.practice-btn {
+  background-color: var(--warning);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.practice-btn::before {
+  content: '⟳';
+  font-size: 12px;
+}
+
+.practice-btn:hover {
+  background-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.translation-message {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--neutral-50); /* Lighter background for better contrast */
+  border-radius: var(--radius-md);
+  color: var(--neutral-700);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  border-left: 3px solid var(--primary-light);
+  animation: fadeIn 0.3s ease;
+  text-align: left !important; /* Ensure left alignment with !important */
+  direction: ltr; /* Explicitly set left-to-right direction */
+  width: 100%; /* Ensure it takes the full width available */
+  display: block; /* Change to block display to ensure proper alignment */
+}
+
+.hint-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: var(--space-2);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  color: inherit;
+  font-size: 18px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.hint-button:hover {
+  transform: scale(1.2);
+}
+
+.hint-button:active {
+  transform: scale(0.95);
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--warning);
+  transition: transform 0.2s ease;
+  padding: 0;
+}
+
+.toggle-btn:hover {
+  transform: translateY(-1px);
+}
+
+.typing-indicator {
+  display: inline-flex;
+  padding: var(--space-2) var(--space-4);
+  background-color: white;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Time indicator for messages */
+.message-time {
+  font-size: var(--font-size-xs);
+  color: rgba(0, 0, 0, 0.45); /* Darker color for better visibility */
+  margin-top: var(--space-1);
+  text-align: right;
+  font-weight: 500; /* Make timestamps slightly bolder */
+}
+
+.user-message-content .message-time {
+  color: rgba(255, 255, 255, 0.8); /* Lighter color for better visibility on dark background */
+}
+
+/* Message avatar */
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--neutral-300); /* Darker for better contrast */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-2);
+  font-weight: bold;
+  color: var(--neutral-800); /* Darker text for better readability */
+  font-size: var(--font-size-sm);
+}
+
+.ai-avatar {
+  background-color: var(--primary-dark); /* Darker for better contrast */
+  color: white;
+}

@@ -1,0 +1,36 @@
+import { useState } from 'react'
+import { 
+  createBrowserRouter, 
+  RouterProvider, 
+  Route, 
+  createRoutesFromElements 
+} from 'react-router-dom'
+import './App.css'
+import HomePage from './components/HomePage'
+import ChatInterface from './components/ChatInterface'
+
+function App() {
+  // Create a router with the future flags enabled to prevent warnings
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/chat/:scenario" element={<ChatInterface />} />
+      </>
+    ),
+    {
+      future: {
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }
+    }
+  );
+
+  return (
+    <div className="app-container">
+      <RouterProvider router={router} />
+    </div>
+  )
+}
+
+export default App

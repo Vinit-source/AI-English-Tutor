@@ -1,0 +1,5 @@
+# Create directory for images
+mkdir -p /home/rishav45/english-tutor/my-app/src/assets/img
+
+# Copy images from the original project
+cp /home/rishav45/english-tutor/AI-English-Tutor/assets/img/* /home/rishav45/english-tutor/my-app/src/assets/img/
