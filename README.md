@@ -16,12 +16,24 @@ VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
+## Deployment Configuration
+
+To deploy this application on Vercel, you need to configure the following environment variables in your Vercel project settings:
+
+```
+GEMINI_API_KEY=your_gemini_api_key
+MISTRAL_API_KEY=your_mistral_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
+
+These API keys are stored securely on Vercel and are only accessible by the backend serverless functions. Never expose these keys in your frontend code or version control.
+
 ## Supported Models
 
-- **Gemini**: Google's Gemini model (requires Gemini API key)
-- **Mistral**: Mistral AI's language model (requires Mistral API key)
-- **Deepseek**: Accessible via OpenRouter (requires OpenRouter API key)
-- **NVIDIA Nemotron**: Accessible via OpenRouter (requires OpenRouter API key)
+- **Gemini**: Google's Gemini model
+- **Mistral**: Mistral AI's language model  
+- **Deepseek**: Accessible via OpenRouter
+- **NVIDIA Nemotron**: Accessible via OpenRouter
 
 ## Development
 
@@ -50,3 +62,7 @@ npm install
 # Set up necessary directories and assets
 npm run setup
 ```
+
+## Security Notice
+
+All AI API calls are handled securely through Vercel Serverless Functions, ensuring that API keys are never exposed to the client. The frontend communicates with these functions through a secure API endpoint.

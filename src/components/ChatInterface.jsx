@@ -26,6 +26,9 @@ const ChatInterface = () => {
   ]);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastCorrection, setLastCorrection] = useState('');
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
   const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
@@ -51,19 +54,44 @@ const ChatInterface = () => {
     });
   }, [scenario, userLanguage]);
 
-  // Simple translation function for the welcome message
+  // Simple translation function for common responses
   const getTranslation = (text, language) => {
     const translations = {
-      hindi: 'आपका स्वागत है',
-      marathi: 'आपले स्वागत आहे',
-      gujarati: 'આપનું સ્વાગત છે',
-      bengali: 'আপনাকে স্বাগতম',
-      tamil: 'வரவேற்கிறோம்',
-      telugu: 'మీకు స్వాగతం',
-      kannada: 'ಸ್ವಾಗತ',
-      malayalam: 'സ്വാഗതം'
+      hindi: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} परिदृश्य में आपका स्वागत है! मैं आज आपको अंग्रेजी का अभ्यास करने में कैसे मदद कर सकता हूं?`,
+        'Perfect': 'बिल्कुल सही! यह एकदम सटीक है। चलिए अपनी बातचीत जारी रखें।'
+      },
+      marathi: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} परिस्थितीमध्ये आपले स्वागत आहे! मी आज आपल्याला इंग्रजी सराव करण्यात कशी मदत करू शकतो?`,
+        'Perfect': 'अगदी बरोबर! हे अगदी योग्य आहे. चला आपली संभाषण पुढे सुरू ठेवूया.'
+      },
+      gujarati: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} પરિસ્થિતિમાં આપનું સ્વાગત છે! હું આજે તમને અંગ્રેજી પ્રેક્ટિસ કરવામાં કેવી રીતે મદદ કરી શકું?`,
+        'Perfect': 'એકદમ સાચું! એ બિલકુલ સાચું છે. ચાલો આપણી વાતચીત ચાલુ રાખીએ.'
+      },
+      bengali: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} পরিস্থিতিতে আপনাকে স্বাগতম! আমি আজ আপনাকে ইংরেজি অনুশীলন করতে কীভাবে সাহায্য করতে পারি?`,
+        'Perfect': 'একদম ঠিক! এটা একেবারে সঠিক। চলুন আমাদের কথোপকথন চালিয়ে যাই।'
+      },
+      tamil: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} சூழ்நிலைக்கு வரவேற்கிறோம்! நான் இன்று உங்களுக்கு ஆங்கிலம் பயிற்சி செய்ய எப்படி உதவ முடியும்?`,
+        'Perfect': 'மிகச் சரியாக இருக்கிறது! அது சரியாக இருக்கிறது. நமது உரையாடலைத் தொடர்வோம்.'
+      },
+      telugu: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} పరిస్థితికి స్వాగతం! నేను ఈరోజు మీకు ఇంగ్లిష్ ప్రాక్టీస్ చేయడంలో ఎలా సహాయపడగలను?`,
+        'Perfect': 'చాలా బాగుంది! అది ఖచ్చితంగా సరైనది. మన సంభాషణను కొనసాగిద్దాం.'
+      },
+      kannada: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} ಸನ್ನಿವೇಶಕ್ಕೆ ಸ್ವಾಗತ! ನಾನು ಇಂದು ನಿಮಗೆ ಇಂಗ್ಲಿಷ್ ಅಭ್ಯಾಸ ಮಾಡಲು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?`,
+        'Perfect': 'ಬಹಳ ಒಳ್ಳೆಯದು! ಅದು ಸರಿಯಾಗಿದೆ. ನಮ್ಮ ಸಂಭಾಷಣೆಯನ್ನು ಮುಂದುವರೆಸೋಣ.'
+      },
+      malayalam: {
+        'Welcome': `${scenario.replace(/-/g, ' ')} സാഹചര്യത്തിലേക്ക് സ്വാഗതം! ഇന്ന് നിങ്ങൾക്ക് ഇംഗ്ലീഷ് പരിശീലിക്കാൻ എങ്ങനെ സഹായിക്കാൻ കഴിയും?`,
+        'Perfect': 'തികച്ചും ശരി! അത് കൃത്യമായി ശരിയാണ്. നമുക്ക് സംഭാഷണം തുടരാം.'
+      }
     };
-    return translations[language] || text;
+
+    return translations[language]?.[text] || text;
   };
 
   useEffect(() => {
@@ -112,6 +140,8 @@ const ChatInterface = () => {
 
   const handleSendMessage = async () => {
     if (inputValue.trim() === '' || isLoading) return;
+
+    setError(null); // Clear any existing errors
 
     // Create a flag to track if this is a correction practice
     const isCorrectingPractice = isPracticeMode && inputValue.trim().toLowerCase() === lastCorrection.toLowerCase();
@@ -185,325 +215,90 @@ const ChatInterface = () => {
 
   const getAIResponse = async (message, language, model, scenario) => {
     try {
-      // Retrieve API keys from environment variables
-      const apiKeys = {
-        gemini: import.meta.env.VITE_GEMINI_API_KEY,
-        mistral: import.meta.env.VITE_MISTRAL_API_KEY,
-        openrouter: import.meta.env.VITE_OPENROUTER_API_KEY, // For deepseek and nemotron
-        deepseek: import.meta.env.VITE_DEEPSEEK_API_KEY
-      };
-
-      // Create the system message with the scenario context
-      const systemPrompt = `
-        You are a friendly English tutor engaging in a "${scenario.replace(/-/g, ' ')}" conversation with an Indian student (${language} speaker). 
-        
-        CONVERSATION OBJECTIVES: Guide the student to naturally explore English by steering the conversation to cover these objectives: 
-        1. Ask how you are. 
-        2. Ask how everyone at your home is. 
-        3. Ask how your work pressure is. 
-        4. Ask about your holiday plans for the weekend. 
-
-        FEEDBACK PROTOCOL:
-        1. When the student CORRECTLY fulfills an objective using proper English, add the corresponding objective number in square brackets (e.g., [1]) at the beginning of your response, then continue the natural conversation.
-        
-        2. When the student makes grammatical or sentence formation mistakes:
-           a. First clearly acknowledge what they're trying to communicate
-           b. Then say "You should say:" followed by the corrected English phrase in quotes
-           c. Briefly explain the grammar rule if necessary
-           d. End your message by asking them to try repeating the corrected phrase
-        
-        3. When the student correctly repeats a phrase you've corrected:
-           a. Give positive reinforcement ("Excellent!" or "Perfect!")
-           b. Continue the conversation naturally
-        
-        FORMAT: For every response, provide your answer in English first, followed by its literal translation into ${language} enclosed in parentheses.
-        
-        EXAMPLE CORRECTION:
-        Student: "I am go to market yesterday."
-        You: "I understand you went shopping yesterday. You should say: "I went to the market yesterday." In English, we use past tense (went) for actions completed in the past. Could you try saying that correct sentence? (मैं समझता हूँ कि आप कल शॉपिंग के लिए गए थे। आपको कहना चाहिए: "I went to the market yesterday." अंग्रेज़ी में, हम भूतकाल में पूर्ण कार्यों के लिए past tense (went) का उपयोग करते हैं। क्या आप उस सही वाक्य को कहने की कोशिश कर सकते हैं?)"
-      `;
-
-      // Add the message to conversation history
+      // Add the user's message to conversation history before making the API call
       conversationHistory.current.push({
         role: 'user',
         content: message
       });
 
-      try {
-        // Call the appropriate model API based on selection
-        let response;
-        switch (model) {
-          case 'gemini': {
-            if (!apiKeys.gemini) {
-              throw new Error('Gemini API key not found');
-            }
-            response = await callGeminiAPI(apiKeys.gemini, conversationHistory.current, systemPrompt, language);
-            break;
-          }
-          case 'mistral': {
-            if (!apiKeys.mistral) {
-              throw new Error('Mistral API key not found');
-            }
-            response = await callMistralAPI(apiKeys.mistral, conversationHistory.current, systemPrompt, language);
-            break;
-          }
-          case 'deepseek': {
-            if (!apiKeys.openrouter) {
-              throw new Error('OpenRouter API key not found for Deepseek');
-            }
-            response = await callOpenRouterAPI(
-              apiKeys.openrouter, 
-              'deepseek/deepseek-r1:free', 
-              conversationHistory.current, 
-              systemPrompt, 
-              language
-            );
-            break;
-          }
-          case 'nemotron': {
-            if (!apiKeys.openrouter) {
-              throw new Error('OpenRouter API key not found for Nemotron');
-            }
-            response = await callOpenRouterAPI(
-              apiKeys.openrouter, 
-              'nvidia/llama-3.1-nemotron-nano-8b-v1:free', 
-              conversationHistory.current, 
-              systemPrompt, 
-              language
-            );
-            break;
-          }
-          default: {
-            // Fallback to server API
-            response = await callServerAPI(message, language, model, scenario);
-            break;
-          }
-        }
-        return response;
-      } catch (error) {
-        // Handle rate limiting and other errors
-        if (error.message.includes('429') || error.message.includes('rate limit')) {
-          // Mark the model as rate limited
-          setRateLimitedModels(prev => ({ ...prev, [model]: true }));
-          
-          // Try with another model if available
-          const newModel = findAvailableModel();
-          if (newModel !== model && newModel !== 'server') {
-            console.log(`Trying with ${newModel} after ${model} was rate limited`);
-            return await getAIResponse(message, language, newModel, scenario);
-          } else {
-            // Fall back to server API as last resort
-            return await callServerAPI(message, language, 'fallback', scenario);
-          }
-        }
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error in AI response:', error);
-      return 'Sorry, I had trouble connecting to the AI service. Please try again with a different model.';
-    }
-  };
+      const apiUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api/chat'
+        : '/api/chat';
 
-  // Helper function to call the server API
-  const callServerAPI = async (message, language, model, scenario) => {
-    const baseUrl = import.meta.env.VITE_SERVER_URL || 'https://ai-english-tutor-opal.vercel.app';
-    const response = await fetch(`${baseUrl}/api/scenario/${scenario}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, language, model }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Server API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Store the AI response in conversation history
-    conversationHistory.current.push({
-      role: 'assistant',
-      content: data.reply
-    });
-    
-    return data.reply;
-  };
-
-  // Helper function to call Gemini API
-  const callGeminiAPI = async (apiKey, messages, systemPrompt, language) => {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    
-    // Get all previous messages for context
-    const contextMessages = messages.slice(-5); // Limit to the 5 most recent messages
-    const userMessage = contextMessages[contextMessages.length - 1].content;
-    
-    // Structure the payload for Gemini with more context
-    const payload = {
-      contents: [
-        {
-          parts: [{ text: systemPrompt }]
-        },
-        ...contextMessages.slice(0, -1).map(msg => ({
-          parts: [{ text: msg.content }],
-          role: msg.role === 'user' ? 'user' : 'model'
-        })),
-        {
-          parts: [{ text: userMessage }],
-          role: 'user'
-        }
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1024
-      }
-    };
-    
-    try {
-      const response = await fetch(geminiUrl, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          message,
+          language,
+          model,
+          scenario,
+          conversationHistory: conversationHistory.current
+        }),
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
       
-      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-        const aiResponse = data.candidates[0].content.parts[0].text;
-        
-        // Store the AI response in conversation history
-        conversationHistory.current.push({
-          role: 'assistant',
-          content: aiResponse
+      // Handle fallback model information
+      if (data.usedFallback) {
+        setLlmModel(data.fallbackModel);
+        setError({
+          message: `Using ${data.fallbackModel} as fallback model due to issues with ${model}`,
+          timestamp: Date.now(),
+          type: 'info'
         });
-        
-        return aiResponse;
       }
       
-      throw new Error('Invalid response format from Gemini API');
+      // Reset retry count on successful response
+      setRetryCount(0);
+      // Add the AI response to conversation history
+      conversationHistory.current.push({
+        role: 'assistant',
+        content: data.reply
+      });
+      
+      return data.reply;
     } catch (error) {
-      // If rate limited, mark the model as unavailable
-      if (error.message.includes('429')) {
-        setRateLimitedModels(prev => ({ ...prev, gemini: true }));
+      console.error('Error in AI response:', error);
+      
+      // Implement retry logic for network errors
+      if (error.message.includes('network') && retryCount < MAX_RETRIES) {
+        setRetryCount(prev => prev + 1);
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        return getAIResponse(message, language, model, scenario);
       }
+      
+      handleAPIError(error);
       throw error;
     }
   };
 
-  // Helper function to call Mistral API
-  const callMistralAPI = async (apiKey, messages, systemPrompt, language) => {
-    const mistralUrl = 'https://api.mistral.ai/v1/chat/completions';
+  // Error handling utility
+  const handleAPIError = (error) => {
+    let errorMessage = 'Something went wrong. Please try again.';
     
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages.map(msg => ({ role: msg.role, content: msg.content }))
-    ];
-    
-    const payload = {
-      model: 'open-mistral-nemo',
-      messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 1024
-    };
-    
-    try {
-      const response = await fetch(mistralUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Mistral API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        const aiResponse = data.choices[0].message.content;
-        
-        // Store the AI response in conversation history
-        conversationHistory.current.push({
-          role: 'assistant',
-          content: aiResponse
-        });
-        
-        return aiResponse;
-      }
-      
-      throw new Error('Invalid response format from Mistral API');
-    } catch (error) {
-      // If rate limited, mark the model as unavailable
-      if (error.message.includes('429')) {
-        setRateLimitedModels(prev => ({ ...prev, mistral: true }));
-      }
-      throw error;
+    if (error.message.includes('rate limit')) {
+      errorMessage = 'You have made too many requests. Please wait a moment before trying again.';
+      // Mark current model as rate limited
+      setRateLimitedModels(prev => ({ ...prev, [llmModel]: true }));
+      // Reset after 1 minute
+      setTimeout(() => {
+        setRateLimitedModels(prev => ({ ...prev, [llmModel]: false }));
+      }, 60000);
+    } else if (error.message.includes('API key')) {
+      errorMessage = 'Server configuration error. Please try a different AI model.';
+    } else if (error.message.includes('network')) {
+      errorMessage = 'Network error. Please check your internet connection.';
     }
-  };
 
-  // Helper function to call OpenRouter API (for Deepseek and Nemotron)
-  const callOpenRouterAPI = async (apiKey, modelId, messages, systemPrompt, language) => {
-    const openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    
-    const formattedMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages.map(msg => ({ role: msg.role, content: msg.content }))
-    ];
-    
-    const payload = {
-      model: modelId,
-      messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 1024
-    };
-    
-    try {
-      const response = await fetch(openRouterUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'AI English Tutor'
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.choices && data.choices[0] && data.choices[0].message) {
-        const aiResponse = data.choices[0].message.content;
-        
-        // Store the AI response in conversation history
-        conversationHistory.current.push({
-          role: 'assistant',
-          content: aiResponse
-        });
-        
-        return aiResponse;
-      }
-      
-      throw new Error('Invalid response format from OpenRouter API');
-    } catch (error) {
-      // If rate limited, mark the model as unavailable
-      if (error.message.includes('429')) {
-        if (modelId.includes('deepseek')) {
-          setRateLimitedModels(prev => ({ ...prev, deepseek: true }));
-        } else if (modelId.includes('nemotron')) {
-          setRateLimitedModels(prev => ({ ...prev, nemotron: true }));
-        }
-      }
-      throw error;
-    }
+    setError({ message: errorMessage, timestamp: Date.now() });
+    // Clear error after 5 seconds
+    setTimeout(() => setError(null), 5000);
   };
 
   // Expose the practice mode function to the window so ChatMessage can access it
@@ -517,6 +312,12 @@ const ChatInterface = () => {
 
   return (
     <div className="chat-container">
+      {error && (
+        <div className={`error-banner ${error.type || ''}`}>
+          <span>{error.message}</span>
+          <button onClick={() => setError(null)} className="close-error">✕</button>
+        </div>
+      )}
       <div className="chat-header">
         <div className="header-content">
           <button 
