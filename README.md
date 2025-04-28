@@ -1,6 +1,32 @@
 # AI English Tutor App
 
-An interactive application to help non-English speakers practice English through role-play scenarios.
+A personalized AI-powered English learning companion designed specifically for Indian learners. Practice natural English conversations in everyday scenarios, with support for multiple Indian languages including Hindi, Marathi, Gujarati, Bengali, Tamil, Telugu, Kannada, and Malayalam.
+
+## Why AI English Tutor?
+
+- **Natural Conversations**: Practice English in real-life scenarios like ordering coffee, shopping, or making phone calls
+- **Personalized Feedback**: Get instant, gentle corrections to improve your pronunciation and grammar
+- **Mother Tongue Support**: Receive translations and explanations in your preferred Indian language
+- **Practical Scenarios**: Learn through interactive role-play in common situations:
+  - Making phone calls to friends
+  - Ordering at restaurants and coffee shops
+  - Shopping at stores
+  - Attending classes and meetings
+  - Celebrating special occasions
+
+## Features
+
+- **Interactive Role-Play**: Practice with AI that adapts to your learning pace
+- **Multi-Language Support**: Choose from 8 Indian languages for translations
+- **Progress Tracking**: Monitor your learning objectives in each scenario
+- **Instant Corrections**: Learn from mistakes with helpful suggestions
+- **Free**: Access to all basic scenarios at no cost
+
+## Getting Started
+
+Choose your preferred language, select a scenario, and start practicing! The AI tutor will guide you through natural conversations while providing helpful translations and corrections.
+
+## Technical Setup
 
 ## Setting Up API Keys
 
@@ -10,10 +36,9 @@ The application supports multiple language models. To use them, you need to set 
 2. Add your API keys as follows:
 
 ```
-VITE_GEMINI_API_KEY=your_gemini_api_key
-VITE_MISTRAL_API_KEY=your_mistral_api_key
-VITE_OPENROUTER_API_KEY=your_openrouter_api_key
-VITE_DEEPSEEK_API_KEY=your_deepseek_api_key
+GEMINI_API_KEY=your_gemini_api_key
+MISTRAL_API_KEY=your_mistral_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ## Deployment Configuration
@@ -62,7 +87,5 @@ npm install
 # Set up necessary directories and assets
 npm run setup
 ```
+````
 
-## Security Notice
-
-All AI API calls are handled securely through Vercel Serverless Functions, ensuring that API keys are never exposed to the client. The frontend communicates with these functions through a secure API endpoint.

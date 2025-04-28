@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
+import { getScenarioById } from '../data/scenarioLoader';
 import '../styles/ObjectivesPanel.css';
 
 const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) => {
   const [progress, setProgress] = useState(0);
+  const [scenarioData, setScenarioData] = useState(null);
+  
+  useEffect(() => {
+    // Convert scenario param to scenario ID format (e.g., "over a phone call" -> "over-a-phone-call")
+    const scenarioId = scenario.toLowerCase().replace(/ /g, '-');
+    const data = getScenarioById(scenarioId);
+    setScenarioData(data);
+  }, [scenario]);
   
   useEffect(() => {
     const completedCount = objectives.filter(obj => obj.completed).length;
@@ -27,11 +36,7 @@ const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) =
       <div className="objectives-content">
         <h3 className="section-title scenario">Scenario</h3>
         <p className="scenario-description">
-          {scenario === 'over a phone call' ? (
-            "You are calling your friend in Chennai, curious about their well-being, work life, and upcoming weekend getaway plans."
-          ) : (
-            `Practice English conversation in a "${scenario}" scenario.`
-          )}
+          {scenarioData ? scenarioData.description : `Practice English conversation in a "${scenario}" scenario.`}
         </p>
         
         <h3 className="section-title objectives">Learning Objectives</h3>

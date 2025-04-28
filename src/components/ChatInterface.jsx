@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
+import { getScenarioById } from '../data/scenarioLoader';
 import '../styles/ChatInterface.css';
 
 const ChatInterface = () => {
@@ -9,7 +10,7 @@ const ChatInterface = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [showObjectives, setShowObjectives] = useState(false);
+  const [showObjectives, setShowObjectives] = useState(true);
   const [llmModel, setLlmModel] = useState('gemini');
   const [isLoading, setIsLoading] = useState(false);
   const [rateLimitedModels, setRateLimitedModels] = useState({
@@ -18,12 +19,7 @@ const ChatInterface = () => {
     deepseek: false,
     nemotron: false
   });
-  const [objectives, setObjectives] = useState([
-    { id: 'item1', text: 'Ask how is your friend doing', completed: false },
-    { id: 'item2', text: 'Ask how is everyone at his home', completed: false },
-    { id: 'item3', text: 'Ask how is his work pressure', completed: false },
-    { id: 'item4', text: 'Ask about his holiday plans for the weekend', completed: false }
-  ]);
+  const [objectives, setObjectives] = useState([]);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastCorrection, setLastCorrection] = useState('');
   const [error, setError] = useState(null);
@@ -53,6 +49,14 @@ const ChatInterface = () => {
       nemotron: false
     });
   }, [scenario, userLanguage]);
+
+  // Load objectives from scenario data
+  useEffect(() => {
+    const scenarioData = getScenarioById(scenario);
+    if (scenarioData) {
+      setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
+    }
+  }, [scenario]);
 
   // Simple translation function for common responses
   const getTranslation = (text, language) => {
@@ -350,13 +354,14 @@ const ChatInterface = () => {
         </div>
       </div>
       
-      <div className="chat-messages" ref={chatMessagesRef}>
+      <div className={`chat-messages ${scenario}`} ref={chatMessagesRef}>
         <canvas ref={canvasRef} id="chatCanvas"></canvas>
         {messages.map((message, index) => (
           <ChatMessage 
             key={index} 
             type={message.type} 
-            content={message.content} 
+            content={message.content}
+            isPractice={message.isPractice || false}
           />
         ))}
         <div ref={messagesEndRef} />

@@ -2,11 +2,13 @@ import { useState } from 'react';
 import '../styles/ScenarioCard.css';
 
 const ScenarioCard = ({ 
+  id,
   title, 
   description, 
-  image, 
   icon,
+  iconName,
   status, 
+  objectives,
   onClick, 
   delay = 0,
   animate = true
@@ -19,14 +21,14 @@ const ScenarioCard = ({
   return (
     <div 
       className="scenario-card" 
-      onClick={onClick}
+      onClick={() => onClick(id, objectives)}
       style={cardStyle}
       role="button"
       aria-label={`Start ${title} scenario`}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          onClick();
+          onClick(id, objectives);
         }
       }}
     >

@@ -144,6 +144,46 @@
   scroll-behavior: smooth;
   scrollbar-width: thin; /* For Firefox */
   scrollbar-color: var(--primary-light) var(--neutral-200); /* For Firefox */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-blend-mode: overlay;
+}
+
+.chat-messages.over-a-phone-call {
+  background-image: url('../assets/img/over_a_phone_call_bg.png');
+}
+
+.chat-messages.restaurant {
+  background-image: url('../assets/img/restaurant_bg.png');
+}
+
+.chat-messages.nike-store {
+  background-image: url('../assets/img/nike_store_bg.png');
+}
+
+.chat-messages.coffee-shop {
+  background-image: url('../assets/img/coffee_shop_bg.png');
+}
+
+.chat-messages.birthday-celebration {
+  background-image: url('../assets/img/birthday_party_bg.png');
+}
+
+.chat-messages.first-day-class {
+  background-image: url('../assets/img/first_day_class_bg.png');
+}
+
+/* Add semi-transparent overlay for better readability */
+.chat-messages::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.85);
+  z-index: -1;
 }
 
 /* Custom scrollbar for Webkit browsers (Chrome, Safari, newer Edge) */

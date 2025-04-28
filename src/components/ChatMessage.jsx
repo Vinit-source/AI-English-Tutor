@@ -82,18 +82,30 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
 
         if (parts.length > 1) {
           englishMain = parts[0].trim();
-
+          
           // Extract the correction from the second part
-          // Look for text in quotes or just take the next phrase
           const secondPart = parts[1];
+          
+          // First try to find text in quotes
           const quoteMatch = secondPart.match(/["'](.*?)["']/);
-
+          
           if (quoteMatch) {
             correctionText = quoteMatch[1].trim();
           } else {
-            // Take the first sentence or portion after the pattern
-            correctionText = secondPart.split(/[.!?]|\n/)[0].trim();
+            // If no quotes, look for text until a sentence end or explanation starts
+            const correctionEnd = secondPart.search(/[.!?]|(\sbecause\s|\sas\s|\ssince\s)/i);
+            if (correctionEnd !== -1) {
+              correctionText = secondPart.substring(0, correctionEnd).trim();
+            } else {
+              // If no clear end, take the whole remainder but limit to reasonable length
+              correctionText = secondPart.trim().split(/\s+/).slice(0, 10).join(' ');
+            }
           }
+          
+          // Clean up the correction text
+          correctionText = correctionText
+            .replace(/^[:"'\s]+|[:"'\s]+$/g, '') // Remove quotes and extra spaces
+            .replace(/\s+/g, ' '); // Normalize whitespace
         }
       }
     });
@@ -104,7 +116,12 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
         <div className={`ai-message-content ${hasCorrection ? 'has-correction' : ''}`}>
           {/* Main English response */}
           <div className="english-message">
-            {englishMain}
+            {englishMain.split('\n').map((line, i) => (
+              <span key={i}>
+                {line}
+                {i < englishMain.split('\n').length - 1 && <br />}
+              </span>
+            ))}
 
             {/* Translation toggle button */}
             {translatedText && (

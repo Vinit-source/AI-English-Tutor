@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ScenarioCard from './ScenarioCard';
+import { getAllScenarios } from '../data/scenarioLoader';
 import '../styles/HomePage.css';
 
 // Create SVG icons directly in the component instead of importing them
@@ -71,59 +72,16 @@ const HomePage = () => {
   const [animateCards, setAnimateCards] = useState(false);
   const navigate = useNavigate();
   
-  const scenarios = [
-    { 
-      id: 'over-a-phone-call', 
-      title: 'Over a phone call',
-      description: 'Practice making a phone call to a friend in English',
-      iconName: 'phone',
-      status: 'free'
-    },
-    { 
-      id: 'restaurant', 
-      title: 'At a restaurant',
-      description: 'Learn how to order food and have conversations at restaurants',
-      iconName: 'restaurant',
-      status: 'free'
-    },
-    { 
-      id: 'nike-store', 
-      title: 'At a Nike store',
-      description: 'Practice shopping for shoes and clothes in English',
-      iconName: 'shopping',
-      status: 'free'
-    },
-    { 
-      id: 'coffee-shop', 
-      title: 'At a coffee shop',
-      description: 'Learn how to order coffee and chat in a coffee shop',
-      iconName: 'coffee',
-      status: 'free'
-    },
-    { 
-      id: 'first-day-class', 
-      title: 'First day of class',
-      description: 'Practice introducing yourself and meeting classmates',
-      iconName: 'class',
-      status: 'free'
-    },
-    { 
-      id: 'spanish-restaurant', 
-      title: 'Birthday celebration',
-      description: 'Learn how to celebrate a birthday with friends at a restaurant',
-      iconName: 'birthday',
-      status: 'free'
-    },
-  ];
-
   useEffect(() => {
-    // Trigger animation after component mounts
     setAnimateCards(true);
   }, []);
 
-  const handleCardClick = (scenario) => {
+  const handleCardClick = (scenarioId, objectives) => {
     localStorage.setItem('userLanguage', language);
-    navigate(`/chat/${scenario}`);
+    localStorage.setItem('currentScenarioObjectives', JSON.stringify(
+      objectives.map(obj => ({ ...obj, completed: false }))
+    ));
+    navigate(`/chat/${scenarioId}`);
   };
 
   return (
@@ -161,14 +119,12 @@ const HomePage = () => {
         </div>
 
         <div className="scenarios-container">
-          {scenarios.map((scenario, index) => (
+          {getAllScenarios().map((scenario, index) => (
             <ScenarioCard 
               key={scenario.id}
-              title={scenario.title}
-              description={scenario.description}
+              {...scenario}
               icon={<ScenarioIcon name={scenario.iconName} />}
-              status={scenario.status}
-              onClick={() => handleCardClick(scenario.id)}
+              onClick={handleCardClick}
               delay={index * 0.1}
               animate={animateCards}
             />

@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
+import fs from 'fs/promises';
 
 // Get the directory path for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,18 @@ const __dirname = dirname(__filename);
 
 // Configure dotenv to look for .env in the project root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// Load system prompt from file
+async function loadSystemPrompt(scenario) {
+  try {
+    const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
+    const promptContent = await fs.readFile(promptPath, 'utf8');
+    return promptContent;
+  } catch (error) {
+    console.error(`Error loading prompt for scenario ${scenario}:`, error);
+    return null;
+  }
+}
 
 // Validate required environment variables
 const requiredEnvVars = ['GEMINI_API_KEY', 'MISTRAL_API_KEY', 'OPENROUTER_API_KEY'];
@@ -79,30 +92,13 @@ async function chatHandler(req, res) {
     }
 
     // Create system prompt
-    const systemPrompt = `
-      You are a friendly English tutor engaging in a "${scenario.replace(/-/g, ' ')}" conversation with an Indian student (${language} speaker). 
-      
-      CONVERSATION OBJECTIVES: Guide the student to naturally explore English by steering the conversation to cover these objectives: 
-      1. Ask how you are. 
-      2. Ask how everyone at your home is. 
-      3. Ask how your work pressure is. 
-      4. Ask about your holiday plans for the weekend. 
-
-      FEEDBACK PROTOCOL:
-      1. When the student CORRECTLY fulfills an objective using proper English, add the corresponding objective number in square brackets (e.g., [1]) at the beginning of your response, then continue the natural conversation.
-      
-      2. When the student makes grammatical or sentence formation mistakes:
-         a. First clearly acknowledge what they're trying to communicate
-         b. Then say "You should say:" followed by the corrected English phrase in quotes
-         c. Briefly explain the grammar rule if necessary
-         d. End your message by asking them to try repeating the corrected phrase
-      
-      3. When the student correctly repeats a phrase you've corrected:
-         a. Give positive reinforcement ("Excellent!" or "Perfect!")
-         b. Continue the conversation naturally
-      
-      FORMAT: For every response, provide your answer in English first, followed by its literal translation into ${language} enclosed in parentheses.
-    `;
+    const systemPrompt = await loadSystemPrompt(scenario);
+    if (!systemPrompt) {
+      return res.status(500).json({ 
+        error: 'Server error',
+        details: 'Failed to load system prompt'
+      });
+    }
 
     // Model selection and API call with error handling
     let response;
