@@ -8,6 +8,7 @@
     "server": "node api/chat.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
+    "vercel-build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "setup": "node setup.js"
