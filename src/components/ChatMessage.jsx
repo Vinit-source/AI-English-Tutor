@@ -116,12 +116,7 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
         <div className={`ai-message-content ${hasCorrection ? 'has-correction' : ''}`}>
           {/* Main English response */}
           <div className="english-message">
-            {englishMain.split('\n').map((line, i) => (
-              <span key={i}>
-                {line}
-                {i < englishMain.split('\n').length - 1 && <br />}
-              </span>
-            ))}
+            {englishMain}
 
             {/* Translation toggle button */}
             {translatedText && (

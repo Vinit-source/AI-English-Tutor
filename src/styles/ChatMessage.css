@@ -57,22 +57,6 @@
   line-height: 1.5;
 }
 
-.english-message span {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-/* Add spacing between objectives */
-.english-message span:empty {
-  height: 0.5rem;
-}
-
-/* Style the numbered objectives */
-.english-message span:nth-child(n+2):nth-child(-n+5) {
-  padding-left: 1rem;
-  position: relative;
-}
-
 .correction-section {
   margin-top: var(--space-3);
   border-top: 1px dashed var(--neutral-300);
