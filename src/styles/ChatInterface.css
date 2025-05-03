@@ -39,6 +39,30 @@
   gap: var(--space-2);
 }
 
+.language-indicator {
+  font-size: var(--font-size-xs);
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  text-transform: capitalize;
+  font-weight: 600; /* Make it bolder for better visibility */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Add a subtle border */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+  position: relative; /* For the dot indicator */
+}
+
+.language-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #22c55e; /* Green dot for active language */
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
 .back-button {
   background-color: rgba(255, 255, 255, 0.15);
   color: white;

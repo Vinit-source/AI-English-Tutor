@@ -15,10 +15,14 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Load system prompt from file
-async function loadSystemPrompt(scenario) {
+async function loadSystemPrompt(scenario, language = 'hindi') {
   try {
     const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
-    const promptContent = await fs.readFile(promptPath, 'utf8');
+    let promptContent = await fs.readFile(promptPath, 'utf8');
+    
+    // Add language information to prompt
+    promptContent += `\n\nIMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.`;
+    
     return promptContent;
   } catch (error) {
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
@@ -92,7 +96,7 @@ async function chatHandler(req, res) {
     }
 
     // Create system prompt
-    const systemPrompt = await loadSystemPrompt(scenario);
+    const systemPrompt = await loadSystemPrompt(scenario, language);
     if (!systemPrompt) {
       return res.status(500).json({ 
         error: 'Server error',
@@ -113,11 +117,11 @@ async function chatHandler(req, res) {
           response = await callMistralAPI(process.env.MISTRAL_API_KEY, message, systemPrompt, conversationHistory);
           break;
         }
-        case 'deepseek':
-        case 'nemotron': {
+        case 'gemma':
+        case 'deepseek': {
           response = await callOpenRouterAPI(
             process.env.OPENROUTER_API_KEY,
-            model === 'deepseek' ? 'deepseek/deepseek-r1:free' : 'nvidia/llama-3.1-nemotron-nano-8b-v1:free',
+            model, // Just pass the model identifier
             message,
             systemPrompt,
             conversationHistory
@@ -291,25 +295,26 @@ async function callOpenRouterAPI(apiKey, modelId, message, systemPrompt, convers
     // Updated endpoint
     const url = 'https://openrouter.ai/api/v1/chat/completions';
     
-    // Map model IDs to their correct values
+    // Updated model map with the two specific models requested
     const modelMap = {
-      'deepseek': 'deepseek/deepseek-R1:free',
-      'nemotron': 'nvidia/llama-3.1-nemotron-nano-8b-v1:free',
+      'gemma': 'google/gemma-3-27b-it:free',
+      'deepseek': 'deepseek/deepseek-chat-v3-0324:free'
     };
 
+    // Get the actual model ID to use
+    const modelToUse = modelMap[modelId] || modelId;
+    
+    console.log(`Using OpenRouter model: ${modelToUse}`);
+
     const payload = {
-      model: modelMap[modelId.split('/')[0]] || modelId,
+      model: modelToUse,
       messages: [
         { role: 'system', content: systemPrompt },
         ...conversationHistory.map(msg => ({ role: msg.role, content: msg.content })),
         { role: 'user', content: message }
       ],
       temperature: 0.7,
-      max_tokens: 1024,
-      headers: {
-        'HTTP-Referer': process.env.VERCEL_URL || 'http://localhost:3000',
-        'X-Title': 'AI English Tutor'
-      }
+      max_tokens: 1024
     };
 
     const response = await fetch(url, {
