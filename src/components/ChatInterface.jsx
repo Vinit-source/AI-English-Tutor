@@ -330,7 +330,10 @@ const ChatInterface = () => {
             aria-label="Go back to home"
             title="Back to home page"
           ></button>
-          <span className="chat-title">{scenario.replace(/-/g, ' ')}</span>
+          <span className="chat-title">
+            {scenario.replace(/-/g, ' ')}
+            <span className="language-indicator">{userLanguage}</span>
+          </span>
         </div>
         <div className="chat-controls">
           <select

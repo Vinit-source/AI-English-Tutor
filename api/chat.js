@@ -15,10 +15,14 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Load system prompt from file
-async function loadSystemPrompt(scenario) {
+async function loadSystemPrompt(scenario, language = 'hindi') {
   try {
     const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
-    const promptContent = await fs.readFile(promptPath, 'utf8');
+    let promptContent = await fs.readFile(promptPath, 'utf8');
+    
+    // Add language information to prompt
+    promptContent += `\n\nIMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.`;
+    
     return promptContent;
   } catch (error) {
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
@@ -92,7 +96,7 @@ async function chatHandler(req, res) {
     }
 
     // Create system prompt
-    const systemPrompt = await loadSystemPrompt(scenario);
+    const systemPrompt = await loadSystemPrompt(scenario, language);
     if (!systemPrompt) {
       return res.status(500).json({ 
         error: 'Server error',
