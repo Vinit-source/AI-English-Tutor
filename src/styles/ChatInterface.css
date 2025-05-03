@@ -104,7 +104,7 @@
 .chat-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2); /* Adjust gap if needed */
 }
 
 .llm-model {
@@ -291,6 +291,11 @@
   cursor: not-allowed;
 }
 
+.chat-input-container input::placeholder {
+  color: var(--neutral-500);
+  font-style: italic;
+}
+
 .chat-input-container button {
   margin-left: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -305,18 +310,16 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  min-width: 80px; /* Ensure enough space for text */
+  text-align: center;
 }
 
 .chat-input-container button::after {
-  content: '▶'; /* Changed to a more visible and appropriate right arrow */
-  font-size: 1.4em;
-  font-weight: 900;
-  transition: transform 0.2s ease;
-  margin-left: 2px;
+  content: none;
 }
 
 .chat-input-container button:hover:not(:disabled)::after {
-  transform: translateX(3px);
+  transform: none;
 }
 
 .chat-input-container button:hover:not(:disabled) {
@@ -470,6 +473,91 @@
   }
   to {
     transform: translateY(0);
+  }
+}
+
+/* TTS Toggle Button Styles */
+.tts-toggle-btn {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  border-radius: 50%; /* Make it circular */
+  width: 36px; /* Consistent size */
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative; /* For the disabled line */
+  padding: 0; /* Remove default padding */
+}
+
+.tts-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.tts-toggle-btn.enabled {
+  /* Optional: style for enabled state, e.g., brighter color */
+   color: var(--secondary-light); /* Indicate enabled state */
+}
+
+.tts-disabled-line {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background-color: currentColor; /* Use button's color */
+  transform: rotate(-45deg);
+  transform-origin: center;
+  opacity: 0.7;
+}
+
+/* STT Toggle Button Styles */
+.stt-toggle-btn {
+  margin-right: var(--space-2); /* Space between mic and input */
+  padding: var(--space-2); /* Adjust padding */
+  background-color: var(--neutral-200);
+  color: var(--neutral-600);
+  border: 1px solid var(--neutral-300);
+  border-radius: 50%; /* Make it circular */
+  width: 44px; /* Slightly larger */
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stt-toggle-btn:hover:not(:disabled) {
+  background-color: var(--neutral-300);
+  color: var(--primary-dark);
+}
+
+.stt-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stt-toggle-btn.listening {
+  background-color: var(--danger);
+  color: white;
+  border-color: var(--danger);
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
   }
 }
 

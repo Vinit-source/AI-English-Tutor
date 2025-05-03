@@ -1,9 +1,36 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react'; // Import useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
 import { getScenarioById } from '../data/scenarioLoader';
 import '../styles/ChatInterface.css';
+
+// Helper function to extract only the main English text from AI response
+const extractEnglishText = (content) => {
+  // Remove translation part (text within parentheses)
+  let englishText = content.replace(/\(.*?\)/g, "").trim();
+  
+  // Remove correction suggestions if present
+  const correctionPatterns = [
+    "you should say:", "the correct way:", "try saying:", 
+    "we usually say:", "it's better to say:", "more natural to say:",
+    "you can say:", "correct sentence is:"
+  ];
+  
+  correctionPatterns.forEach(pattern => {
+    const index = englishText.toLowerCase().indexOf(pattern.toLowerCase());
+    if (index !== -1) {
+      // Try to keep only the text before the pattern
+      englishText = englishText.substring(0, index).trim();
+    }
+  });
+  
+  // Remove objective markers like [1], [2] etc.
+  englishText = englishText.replace(/\s?\[\d+\]/g, "").trim();
+
+  return englishText;
+};
+
 
 const ChatInterface = () => {
   const { scenario } = useParams();
@@ -29,16 +56,24 @@ const ChatInterface = () => {
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
   const conversationHistory = useRef([]);
+  const [isListening, setIsListening] = useState(false);
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true); // TTS enabled by default
+  const [isSpeaking, setIsSpeaking] = useState(false); // Track if TTS is active
+  const recognitionRef = useRef(null);
+  const utteranceRef = useRef(null); // Ref to keep track of the current utterance
+
 
   // Get the stored language preference
   const userLanguage = localStorage.getItem('userLanguage') || 'hindi';
 
   // Initialize the chat with a welcome message
   useEffect(() => {
+    const welcomeMessage = `Welcome to the "${scenario.replace(/-/g, ' ')}" scenario! How can I help you practice your English today? (${getTranslation('Welcome', userLanguage)})`;
     setMessages([{ 
       type: 'ai', 
-      content: `Welcome to the "${scenario.replace(/-/g, ' ')}" scenario! How can I help you practice your English today? (${getTranslation('Welcome', userLanguage)})`
+      content: welcomeMessage
     }]);
+    speakText(welcomeMessage); // Speak the initial welcome message
     
     // Reset conversation history and rate limits when scenario changes
     conversationHistory.current = [];
@@ -48,7 +83,7 @@ const ChatInterface = () => {
       gemma: false,
       deepseek: false
     });
-  }, [scenario, userLanguage]);
+  }, [scenario, userLanguage]); // Removed speakText from dependencies
 
   // Load objectives from scenario data
   useEffect(() => {
@@ -112,6 +147,122 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // --- STT (Speech Recognition) Setup ---
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Speech Recognition API not supported in this browser.");
+      // Optionally disable STT button or show a message
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false; // Process speech after user stops talking
+    recognition.interimResults = false; // Get final results only
+    recognition.lang = 'en-US'; // Set language to English
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue(transcript); // Update input field with transcript
+      // Optionally auto-send the message after transcription
+      // handleSendMessage(transcript); 
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setError({ message: `Speech recognition error: ${event.error}`, timestamp: Date.now() });
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    // Cleanup function
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []); // Run only once on mount
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      try {
+        // Cancel TTS if it's speaking
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setIsSpeaking(false);
+        }
+        recognitionRef.current.start();
+        setIsListening(true);
+        setInputValue(''); // Clear input field when starting listening
+      } catch (e) {
+        // Handle potential errors like starting recognition too soon after stopping
+        console.error("Could not start recognition:", e);
+        setError({ message: "Could not start voice input. Please try again.", timestamp: Date.now() });
+        setIsListening(false);
+      }
+    }
+  };
+
+  // --- TTS (Speech Synthesis) Setup ---
+  const speakText = useCallback((text) => {
+    if (!isTTSEnabled || !text || typeof window.speechSynthesis === 'undefined') {
+      return;
+    }
+
+    // Cancel any ongoing speech first
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    const englishTextToSpeak = extractEnglishText(text);
+    if (!englishTextToSpeak) return; // Don't speak if no English text found
+
+    const utterance = new SpeechSynthesisUtterance(englishTextToSpeak);
+    utterance.lang = 'en-US'; // Set language
+    utterance.rate = 1.0; // Adjust speed as needed
+    utterance.pitch = 1.0; // Adjust pitch as needed
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event.error);
+      setError({ message: `Speech synthesis error: ${event.error}`, timestamp: Date.now() });
+      setIsSpeaking(false);
+    };
+    
+    utteranceRef.current = utterance; // Store reference
+    window.speechSynthesis.speak(utterance);
+
+  }, [isTTSEnabled]); // Dependency on isTTSEnabled
+
+  const toggleTTS = () => {
+    const newState = !isTTSEnabled;
+    setIsTTSEnabled(newState);
+    if (!newState && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel(); // Stop speaking if TTS is disabled
+      setIsSpeaking(false);
+    }
+  };
+  
+  // Cleanup TTS on component unmount
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+
   const findAvailableModel = () => {
     // Try to use the currently selected model if it's not rate limited
     if (!rateLimitedModels[llmModel]) {
@@ -131,7 +282,7 @@ const ChatInterface = () => {
     return 'server';
   };
 
-  const enterPracticeMode = (correctionText) => {
+  const enterPracticeMode = useCallback((correctionText) => { // Wrap in useCallback
     setInputValue(correctionText);
     setIsPracticeMode(true);
     setLastCorrection(correctionText);
@@ -140,56 +291,58 @@ const ChatInterface = () => {
       const inputEl = document.querySelector('.chat-input-container input');
       if (inputEl) inputEl.focus();
     }, 100);
-  };
+  }, []); // No dependencies needed if it only uses setters
 
-  const handleSendMessage = async () => {
-    if (inputValue.trim() === '' || isLoading) return;
+  const handleSendMessage = async (messageToSend = inputValue) => { // Allow passing message directly
+    const currentMessage = messageToSend.trim(); // Use passed message or state
+    if (currentMessage === '' || isLoading) return;
 
     setError(null); // Clear any existing errors
 
-    // Create a flag to track if this is a correction practice
-    const isCorrectingPractice = isPracticeMode && inputValue.trim().toLowerCase() === lastCorrection.toLowerCase();
+    // Stop TTS if it's speaking when user sends a message
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    // Stop STT if it's listening
+    if (isListening) {
+       recognitionRef.current?.stop();
+       setIsListening(false);
+    }
+
+
+    const isCorrectingPractice = isPracticeMode && currentMessage.toLowerCase() === lastCorrection.toLowerCase();
     
-    // Add user message to chat
     const newMessages = [...messages, { 
       type: 'user', 
-      content: inputValue,
+      content: currentMessage, // Use currentMessage
       isPractice: isPracticeMode
     }];
     
     setMessages(newMessages);
-    setInputValue('');
+    setInputValue(''); // Clear input field
     setIsLoading(true);
     
-    // Exit practice mode after sending
     if (isPracticeMode) {
       setIsPracticeMode(false);
       setLastCorrection('');
     }
 
     try {
-      // Find an available model
       const modelToUse = findAvailableModel();
-      
-      // Add thinking indicator
       setMessages([...newMessages, { type: 'thinking' }]);
       
-      // Send to API with context about correction practice
-      let response;
+      let responseText;
       if (isCorrectingPractice) {
-        // If this is a correction practice, use a simpler response pattern
-        response = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
-        // Short delay to simulate API call time for better UX
+        responseText = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
-        // Normal API call for regular conversation
-        response = await getAIResponse(inputValue, userLanguage, modelToUse, scenario);
+        responseText = await getAIResponse(currentMessage, userLanguage, modelToUse, scenario); // Use currentMessage
       }
       
-      // Check if response contains objective markers and update objectives
       const updatedObjectives = [...objectives];
       const regex = /\s?\[\d+\]/g;
-      const matches = response.match(regex) || [];
+      const matches = responseText.match(regex) || [];
       
       matches.forEach(match => {
         const matchNumber = match.match(/\d+/)[0];
@@ -199,16 +352,19 @@ const ChatInterface = () => {
         }
       });
       
-      // Update objectives state
       setObjectives(updatedObjectives);
       
-      // Remove thinking indicator and add AI response without objective markers
-      const cleanResponse = response.replace(regex, "");
-      setMessages([...newMessages, { type: 'ai', content: cleanResponse }]);
+      const cleanResponse = responseText.replace(regex, "");
+      // Remove thinking indicator before adding AI response
+      setMessages(prevMessages => [...prevMessages.filter(m => m.type !== 'thinking'), { type: 'ai', content: cleanResponse }]);
+      
+      // Speak the AI response
+      speakText(cleanResponse); 
+
     } catch (error) {
       console.error('Error getting AI response:', error);
-      // Remove thinking indicator and add error message
-      setMessages([...newMessages, { 
+       // Remove thinking indicator before adding error message
+      setMessages(prevMessages => [...prevMessages.filter(m => m.type !== 'thinking'), { 
         type: 'ai', 
         content: 'Sorry, I had trouble responding. Please try again or select a different AI model.' 
       }]);
@@ -314,12 +470,12 @@ const ChatInterface = () => {
     return () => {
       delete window.enterPracticeMode;
     };
-  }, []);
+  }, [enterPracticeMode]); // Add enterPracticeMode to dependency array
 
   return (
     <div className="chat-container">
       {error && (
-        <div class={`error-banner ${error.type || ''}`}>
+        <div className={`error-banner ${error.type || ''}`}>
           <span>{error.message}</span>
           <button onClick={() => setError(null)} className="close-error">✕</button>
         </div>
@@ -338,6 +494,17 @@ const ChatInterface = () => {
           </span>
         </div>
         <div className="chat-controls">
+           {/* TTS Toggle Button */}
+          <button
+            className={`tts-toggle-btn ${isTTSEnabled ? 'enabled' : ''}`}
+            onClick={toggleTTS}
+            aria-label={isTTSEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}
+            title={isTTSEnabled ? "Disable TTS" : "Enable TTS"}
+          >
+            {/* Simple Speaker Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+             {!isTTSEnabled && <span className="tts-disabled-line"></span>}
+          </button>
           <select
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
@@ -373,31 +540,45 @@ const ChatInterface = () => {
       </div>
       
       <div className="chat-input-container">
+         {/* STT Button */}
+         <button 
+            className={`stt-toggle-btn ${isListening ? 'listening' : ''}`}
+            onClick={toggleListening}
+            disabled={!recognitionRef.current || isLoading} // Disable if API not supported or loading response
+            aria-label={isListening ? "Stop listening" : "Start voice input"}
+            title={isListening ? "Stop listening" : "Start voice input"}
+         >
+            {/* Simple Mic Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+         </button>
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSendMessage();
+            if (e.key === 'Enter') handleSendMessage(); // Use modified handleSendMessage
             if (e.key === 'Escape') {
               if (isPracticeMode) {
                 setIsPracticeMode(false);
                 setInputValue('');
               } else {
+                // Stop listening or speaking if navigating away
+                if (isListening) recognitionRef.current?.stop();
+                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
                 navigate('/');
               }
             }
           }}
-          placeholder={isPracticeMode ? "Practice the corrected phrase..." : "Type a message..."}
-          disabled={isLoading}
+          placeholder={isPracticeMode ? "Practice the corrected phrase..." : (isListening ? "Listening..." : "Type or use mic...")}
+          disabled={isLoading || isListening} // Disable input while listening too
           className={isPracticeMode ? 'practice-mode' : ''}
         />
         <button 
-          onClick={handleSendMessage}
-          disabled={isLoading || inputValue.trim() === ''}
+          onClick={() => handleSendMessage()} // Use modified handleSendMessage
+          disabled={isLoading || inputValue.trim() === '' || isListening} // Disable send while listening
           className={`${isLoading ? 'sending' : ''} ${isPracticeMode ? 'practice-mode' : ''}`}
         >
-          {isLoading ? 'Sending...' : isPracticeMode ? 'Practice' : 'Send'}
+          {isLoading ? '...' : isPracticeMode ? 'Practice' : 'Send'} {/* Simpler loading text */}
         </button>
       </div>
 
