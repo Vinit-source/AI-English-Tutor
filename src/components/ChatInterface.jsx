@@ -16,8 +16,8 @@ const ChatInterface = () => {
   const [rateLimitedModels, setRateLimitedModels] = useState({
     gemini: false,
     mistral: false,
-    deepseek: false,
-    nemotron: false
+    gemma: false,
+    deepseek: false
   });
   const [objectives, setObjectives] = useState([]);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
@@ -45,8 +45,8 @@ const ChatInterface = () => {
     setRateLimitedModels({
       gemini: false,
       mistral: false,
-      deepseek: false,
-      nemotron: false
+      gemma: false,
+      deepseek: false
     });
   }, [scenario, userLanguage]);
 
@@ -119,7 +119,7 @@ const ChatInterface = () => {
     }
     
     // Otherwise, find the first available model
-    const availableModels = ['gemini', 'mistral', 'deepseek', 'nemotron'].filter(
+    const availableModels = ['gemini', 'mistral', 'gemma', 'deepseek'].filter(
       model => !rateLimitedModels[model]
     );
     
@@ -272,13 +272,15 @@ const ChatInterface = () => {
       
       // Implement retry logic for network errors
       if (error.message.includes('network') && retryCount < MAX_RETRIES) {
-        setRetryCount(prev => prev + 1);
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        return getAIResponse(message, language, model, scenario);
+        // Corrected retry count update
+        setRetryCount(prev => prev + 1); 
+        console.log(`Network error detected. Retrying... Attempt ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Use updated retryCount for delay
+        return getAIResponse(message, language, model, scenario); // Recursive call
       }
       
       handleAPIError(error);
-      throw error;
+      throw error; // Re-throw the error if not retrying or retries exhausted
     }
   };
 
@@ -317,7 +319,7 @@ const ChatInterface = () => {
   return (
     <div className="chat-container">
       {error && (
-        <div className={`error-banner ${error.type || ''}`}>
+        <div class={`error-banner ${error.type || ''}`}>
           <span>{error.message}</span>
           <button onClick={() => setError(null)} className="close-error">✕</button>
         </div>
@@ -342,10 +344,10 @@ const ChatInterface = () => {
             className="llm-model"
             aria-label="Select AI model"
           >
-            <option value="mistral">Mistral</option>
             <option value="gemini">Gemini</option>
-            <option value="deepseek">Deepseek</option>
-            <option value="nemotron">NVIDIA Nemotron</option>
+            <option value="mistral">Mistral</option>
+            <option value="gemma">Gemma 3</option>
+            <option value="deepseek">DeepSeek</option>
           </select>
           <button
             className="objectives-btn"
