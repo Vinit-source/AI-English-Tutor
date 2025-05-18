@@ -10,7 +10,7 @@ const ChatInterface = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [showObjectives, setShowObjectives] = useState(false);
+  const [showObjectives, setShowObjectives] = useState(true);
   const [objectivesPanelClosing, setObjectivesPanelClosing] = useState(false);
   const [llmModel, setLlmModel] = useState('gemini');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +26,7 @@ const ChatInterface = () => {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
+  const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
@@ -35,13 +36,15 @@ const ChatInterface = () => {
   // Get the stored language preference
   const userLanguage = localStorage.getItem('userLanguage') || 'hindi';
 
-  // Initialize the chat with a welcome message
+  // Focus the input field when component mounts
   useEffect(() => {
-    setMessages([{ 
-      type: 'ai', 
-      content: `Welcome to the "${scenario.replace(/-/g, ' ')}" scenario! How can I help you practice your English today? (${getTranslation('Welcome', userLanguage)})`
-    }]);
-    
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  // Initialize the chat (without welcome message)
+  useEffect(() => {
     // Reset conversation history and rate limits when scenario changes
     conversationHistory.current = [];
     setRateLimitedModels({
@@ -50,6 +53,11 @@ const ChatInterface = () => {
       gemma: false,
       deepseek: false
     });
+    
+    // Refocus input when scenario changes
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [scenario, userLanguage]);
 
   // Load objectives from scenario data
@@ -168,8 +176,7 @@ const ChatInterface = () => {
     setLastCorrection(correctionText);
     // Focus the input after a short delay to ensure the DOM has updated
     setTimeout(() => {
-      const inputEl = document.querySelector('.chat-input-container input');
-      if (inputEl) inputEl.focus();
+      if (inputRef.current) inputRef.current.focus();
     }, 100);
   };
 
@@ -347,6 +354,15 @@ const ChatInterface = () => {
     };
   }, []);
 
+  // Add a handler for when user starts typing
+  const handleInputChange = (e) => {
+    // Close objectives panel when user starts typing
+    if (showObjectives && e.target.value.trim() !== '') {
+      handleCloseObjectives();
+    }
+    setInputValue(e.target.value);
+  };
+
   return (
     <div className="chat-container">
       {error && (
@@ -405,9 +421,10 @@ const ChatInterface = () => {
       
       <div className="chat-input-container">
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSendMessage();
             if (e.key === 'Escape') {
@@ -422,6 +439,7 @@ const ChatInterface = () => {
           placeholder={isPracticeMode ? "Practice the corrected phrase..." : "Type a message..."}
           disabled={isLoading}
           className={isPracticeMode ? 'practice-mode' : ''}
+          autoFocus
         />
         <button 
           onClick={handleSendMessage}
