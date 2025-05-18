@@ -20,8 +20,21 @@ async function loadSystemPrompt(scenario, language = 'hindi') {
     const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
     let promptContent = await fs.readFile(promptPath, 'utf8');
     
-    // Add language information to prompt
-    promptContent += `\n\nIMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.`;
+    // Add language information and structured response format
+    promptContent += `
+    
+IMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.
+
+CORRECTION FORMAT:
+When correcting the user's English, ALWAYS use the following format:
+1. Acknowledge their meaning
+2. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
+3. Explanation if needed
+
+Example of correction:
+"I understand you want to order coffee. You could say: "I would like to order a large coffee, please." This is more natural phrasing."
+
+This structured format is essential for the application to detect corrections properly.`;
     
     return promptContent;
   } catch (error) {

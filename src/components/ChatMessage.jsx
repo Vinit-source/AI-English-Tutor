@@ -3,7 +3,7 @@ import '../styles/ChatMessage.css';
 
 const ChatMessage = ({ type, content, isPractice = false }) => {
   const [showTranslation, setShowTranslation] = useState(false);
-  const [showCorrection, setShowCorrection] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(true);
 
   // Format the time with a more readable format and better contrast
   const formatMessageTime = () => {

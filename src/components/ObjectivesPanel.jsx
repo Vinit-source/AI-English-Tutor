@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { getScenarioById } from '../data/scenarioLoader';
 import '../styles/ObjectivesPanel.css';
 
-const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) => {
+const ObjectivesPanel = forwardRef(({ scenario, objectives, onClose, onObjectiveChange, closing = false }, ref) => {
   const [progress, setProgress] = useState(0);
   const [scenarioData, setScenarioData] = useState(null);
   
@@ -21,7 +21,7 @@ const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) =
   }, [objectives]);
   
   return (
-    <div className="objectives-panel">
+    <div className={`objectives-panel ${closing ? 'closing' : ''}`} ref={ref}>
       <div className="objectives-header">
         <h2 className="objectives-title">Objectives</h2>
         <button 
@@ -85,6 +85,6 @@ const ObjectivesPanel = ({ scenario, objectives, onClose, onObjectiveChange }) =
       </div>
     </div>
   );
-};
+});
 
 export default ObjectivesPanel;

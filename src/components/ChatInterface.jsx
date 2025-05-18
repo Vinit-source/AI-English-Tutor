@@ -10,7 +10,8 @@ const ChatInterface = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [showObjectives, setShowObjectives] = useState(true);
+  const [showObjectives, setShowObjectives] = useState(false);
+  const [objectivesPanelClosing, setObjectivesPanelClosing] = useState(false);
   const [llmModel, setLlmModel] = useState('gemini');
   const [isLoading, setIsLoading] = useState(false);
   const [rateLimitedModels, setRateLimitedModels] = useState({
@@ -29,6 +30,7 @@ const ChatInterface = () => {
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
   const conversationHistory = useRef([]);
+  const objectivesPanelRef = useRef(null);
 
   // Get the stored language preference
   const userLanguage = localStorage.getItem('userLanguage') || 'hindi';
@@ -57,6 +59,35 @@ const ChatInterface = () => {
       setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
     }
   }, [scenario]);
+
+  const handleCloseObjectives = () => {
+    setObjectivesPanelClosing(true);
+    setTimeout(() => {
+      setObjectivesPanelClosing(false);
+      setShowObjectives(false);
+    }, 300); // Match this with the animation duration
+  };
+
+  // Add click outside handler to close objectives panel
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close panel if it's open and the click is outside both the panel and the toggle button
+      if (showObjectives && 
+          objectivesPanelRef.current && 
+          !objectivesPanelRef.current.contains(event.target) &&
+          !event.target.closest('.objectives-btn')) {
+        setShowObjectives(false);
+      }
+    };
+
+    // Add event listener when component mounts or showObjectives changes
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up event listener when component unmounts
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showObjectives]);
 
   // Simple translation function for common responses
   const getTranslation = (text, language) => {
@@ -319,7 +350,7 @@ const ChatInterface = () => {
   return (
     <div className="chat-container">
       {error && (
-        <div class={`error-banner ${error.type || ''}`}>
+        <div className={`error-banner ${error.type || ''}`}>
           <span>{error.message}</span>
           <button onClick={() => setError(null)} className="close-error">✕</button>
         </div>
@@ -351,7 +382,7 @@ const ChatInterface = () => {
           </select>
           <button
             className="objectives-btn"
-            onClick={() => setShowObjectives(!showObjectives)}
+            onClick={() => showObjectives ? handleCloseObjectives() : setShowObjectives(true)}
             aria-label="Toggle objectives panel"
           >
             ☰
@@ -402,17 +433,19 @@ const ChatInterface = () => {
       </div>
 
       {showObjectives && (
-        <ObjectivesPanel 
-          scenario={scenario.replace(/-/g, ' ')}
-          objectives={objectives}
-          onClose={() => setShowObjectives(false)}
-          onObjectiveChange={(id, checked) => {
-            const updatedObjectives = objectives.map(obj => 
-              obj.id === id ? { ...obj, completed: checked } : obj
-            );
-            setObjectives(updatedObjectives);
-          }}
-        />
+        <div ref={objectivesPanelRef}>
+          <ObjectivesPanel 
+            scenario={scenario.replace(/-/g, ' ')}
+            objectives={objectives}
+            onClose={() => setShowObjectives(false)}
+            onObjectiveChange={(id, checked) => {
+              const updatedObjectives = objectives.map(obj => 
+                obj.id === id ? { ...obj, completed: checked } : obj
+              );
+              setObjectives(updatedObjectives);
+            }}
+          />
+        </div>
       )}
     </div>
   );
