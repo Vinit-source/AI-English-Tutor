@@ -260,3 +260,178 @@
   animation: fadeIn 0.8s ease-out 0.6s forwards;
   opacity: 0;
 }
+
+/* Agentic Features Styles */
+.user-insights {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: var(--space-3);
+  border-radius: var(--border-radius);
+  margin: var(--space-4) 0;
+  text-align: center;
+}
+
+.insights-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.control-buttons {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.scenario-toggle-btn {
+  background: linear-gradient(135deg, #ff6b6b, #ffa500);
+  color: white;
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.scenario-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+}
+
+.personalized-info {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  padding: var(--space-3);
+  border-radius: var(--border-radius);
+  margin: var(--space-4) 0;
+  border-left: 4px solid #4ecdc4;
+}
+
+.info-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.recommendations-panel {
+  background: #fff;
+  border: 2px solid #e0e6ed;
+  border-radius: var(--border-radius);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.recommendations-panel h3 {
+  margin: 0 0 var(--space-3) 0;
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.recommendation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  transition: all 0.3s ease;
+}
+
+.recommendation.high {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  border: 1px solid #ff6b6b;
+}
+
+.recommendation.medium {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  border: 1px solid #4ecdc4;
+}
+
+.recommendation.low {
+  background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+  border: 1px solid #f9ca24;
+}
+
+.rec-icon {
+  font-size: 1.2em;
+}
+
+.rec-message {
+  flex: 1;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+/* Enhanced scenario cards for personalized scenarios */
+.scenario-card[data-status="personalized"],
+.scenario-card[data-status="agentic"],
+.scenario-card[data-status="practice"],
+.scenario-card[data-status="adaptive"] {
+  position: relative;
+  overflow: hidden;
+}
+
+.scenario-card[data-status="personalized"]:before,
+.scenario-card[data-status="agentic"]:before,
+.scenario-card[data-status="practice"]:before,
+.scenario-card[data-status="adaptive"]:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  z-index: 1;
+}
+
+.scenario-card[data-status="practice"]:before {
+  background: linear-gradient(90deg, #ff9a9e, #fecfef);
+}
+
+.scenario-card[data-status="adaptive"]:before {
+  background: linear-gradient(90deg, #a8edea, #fed6e3);
+}
+
+/* Mobile responsiveness for new elements */
+@media (max-width: 768px) {
+  .control-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-2);
+  }
+  
+  .scenario-toggle-btn {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .recommendations-panel {
+    padding: var(--space-3);
+  }
+  
+  .recommendation {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-1);
+  }
+  
+  .user-insights {
+    padding: var(--space-2);
+  }
+  
+  .insights-text {
+    font-size: var(--font-size-xs);
+  }
+}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ScenarioCard from './ScenarioCard';
-import { getAllScenarios } from '../data/scenarioLoader';
+import { getAllScenarios, generatePersonalizedScenarios } from '../data/scenarioLoader';
+import { userMemory } from '../utils/userMemory';
 import '../styles/HomePage.css';
 
 // Create SVG icons directly in the component instead of importing them
@@ -70,19 +71,58 @@ const ScenarioIcon = ({ name, color = "#4f46e5" }) => {
 const HomePage = () => {
   const [language, setLanguage] = useState('hindi');
   const [animateCards, setAnimateCards] = useState(false);
+  const [scenarios, setScenarios] = useState([]);
+  const [personalizedScenarios, setPersonalizedScenarios] = useState([]);
+  const [showPersonalized, setShowPersonalized] = useState(false);
+  const [userInsights, setUserInsights] = useState(null);
   const navigate = useNavigate();
   
   useEffect(() => {
     setAnimateCards(true);
-  }, []);
+    
+    // Load scenarios and user insights
+    const allScenarios = getAllScenarios();
+    setScenarios(allScenarios);
+    
+    // Load user insights and personalized scenarios
+    const insights = userMemory.getUserInsights();
+    setUserInsights(insights);
+    
+    if (insights && insights.preferences.favoriteScenarios.length > 0) {
+      const personalized = generatePersonalizedScenarios(3);
+      setPersonalizedScenarios(personalized);
+      setShowPersonalized(true);
+    }
+    
+    // Update user profile with current language selection
+    userMemory.updateUserProfile({ nativeLanguage: language });
+  }, [language]);
 
   const handleCardClick = (scenarioId, objectives) => {
+    // Record scenario start in user memory
+    const scenario = [...scenarios, ...personalizedScenarios].find(s => s.id === scenarioId);
+    if (scenario) {
+      userMemory.recordScenarioStart(scenarioId, scenario.title);
+    }
+    
     localStorage.setItem('userLanguage', language);
     localStorage.setItem('currentScenarioObjectives', JSON.stringify(
       objectives.map(obj => ({ ...obj, completed: false }))
     ));
     navigate(`/chat/${scenarioId}`);
   };
+
+  const handleLanguageChange = (e) => {
+    const newLanguage = e.target.value;
+    setLanguage(newLanguage);
+    userMemory.updateUserProfile({ nativeLanguage: newLanguage });
+  };
+
+  const toggleScenarioView = () => {
+    setShowPersonalized(!showPersonalized);
+  };
+
+  const displayScenarios = showPersonalized ? personalizedScenarios : scenarios;
 
   return (
     <div className="home-container">
@@ -92,34 +132,78 @@ const HomePage = () => {
           Practice English conversations with AI in realistic scenarios.
           Choose your native language and start learning today.
         </p>
+        {userInsights && (
+          <div className="user-insights">
+            <p className="insights-text">
+              🎯 {userInsights.patterns.activityLevel.messagesThisWeek} messages this week • 
+              📚 {userInsights.patterns.vocabularyDiversity} unique words learned
+            </p>
+          </div>
+        )}
       </header>
 
       <main>
         <div className="control-panel">
           <div className="panel-title">
-            <span className="icon">🎭</span> Role-Play Scenarios
+            <span className="icon">🎭</span> 
+            {showPersonalized ? 'Personalized Scenarios' : 'Role-Play Scenarios'}
           </div>
-          <div className="language-selector">
-            <select 
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="language-select"
-              aria-label="Select your native language"
-            >
-              <option value="hindi">Hindi</option>
-              <option value="marathi">Marathi</option>
-              <option value="gujarati">Gujarati</option>
-              <option value="bengali">Bengali</option>
-              <option value="tamil">Tamil</option>
-              <option value="telugu">Telugu</option>
-              <option value="kannada">Kannada</option>
-              <option value="malayalam">Malayalam</option>
-            </select>
+          <div className="control-buttons">
+            <div className="language-selector">
+              <select 
+                value={language}
+                onChange={handleLanguageChange}
+                className="language-select"
+                aria-label="Select your native language"
+              >
+                <option value="hindi">Hindi</option>
+                <option value="marathi">Marathi</option>
+                <option value="gujarati">Gujarati</option>
+                <option value="bengali">Bengali</option>
+                <option value="tamil">Tamil</option>
+                <option value="telugu">Telugu</option>
+                <option value="kannada">Kannada</option>
+                <option value="malayalam">Malayalam</option>
+              </select>
+            </div>
+            {personalizedScenarios.length > 0 && (
+              <button 
+                className="scenario-toggle-btn"
+                onClick={toggleScenarioView}
+                aria-label="Toggle between regular and personalized scenarios"
+              >
+                {showPersonalized ? '📝 All Scenarios' : '⭐ For You'}
+              </button>
+            )}
           </div>
         </div>
 
+        {showPersonalized && personalizedScenarios.length > 0 && (
+          <div className="personalized-info">
+            <p className="info-text">
+              🤖 These scenarios are dynamically generated based on your learning patterns and interests
+            </p>
+          </div>
+        )}
+
+        {userInsights && userInsights.recommendations.length > 0 && (
+          <div className="recommendations-panel">
+            <h3>📋 Recommendations</h3>
+            <div className="recommendations-list">
+              {userInsights.recommendations.slice(0, 2).map((rec, index) => (
+                <div key={index} className={`recommendation ${rec.priority}`}>
+                  <span className="rec-icon">
+                    {rec.priority === 'high' ? '🎯' : rec.priority === 'medium' ? '💡' : '✨'}
+                  </span>
+                  <span className="rec-message">{rec.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="scenarios-container">
-          {getAllScenarios().map((scenario, index) => (
+          {displayScenarios.map((scenario, index) => (
             <ScenarioCard 
               key={scenario.id}
               {...scenario}

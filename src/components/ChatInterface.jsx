@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
-import { getScenarioById } from '../data/scenarioLoader';
+import { getScenarioById, loadScenarioPrompt } from '../data/scenarioLoader';
+import { userMemory } from '../utils/userMemory';
 import '../styles/ChatInterface.css';
 
 const ChatInterface = () => {
@@ -67,6 +68,37 @@ const ChatInterface = () => {
       setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
     }
   }, [scenario]);
+
+  // Record when user completes the chat (navigates away or closes)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      recordScenarioCompletion();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        recordScenarioCompletion();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      recordScenarioCompletion();
+    };
+  }, [objectives]);
+
+  const recordScenarioCompletion = () => {
+    const completedCount = objectives.filter(obj => obj.completed).length;
+    const totalCount = objectives.length;
+    
+    if (totalCount > 0) {
+      userMemory.recordScenarioCompletion(scenario, completedCount, totalCount);
+    }
+  };
 
   const handleCloseObjectives = () => {
     setObjectivesPanelClosing(true);
@@ -239,6 +271,9 @@ const ChatInterface = () => {
       
       // Update objectives state
       setObjectives(updatedObjectives);
+      
+      // Record the conversation in user memory
+      userMemory.recordConversation(inputValue, cleanResponse, scenario);
       
       // Remove thinking indicator and add AI response without objective markers
       const cleanResponse = response.replace(regex, "");
