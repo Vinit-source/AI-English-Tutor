@@ -291,10 +291,10 @@ const ChatInterface = () => {
       setObjectives(updatedObjectives);
       
       // Record the conversation in user memory
+      const cleanResponse = response.replace(regex, "");
       userMemory.recordConversation(inputValue, cleanResponse, scenario);
       
       // Remove thinking indicator and add AI response without objective markers
-      const cleanResponse = response.replace(regex, "");
       setMessages([...newMessages, { type: 'ai', content: cleanResponse }]);
     } catch (error) {
       console.error('Error getting AI response:', error);
