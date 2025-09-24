@@ -66,21 +66,53 @@ function createBasePromptForScenario(scenario) {
     .map((obj, index) => `${index + 1}. [${index + 1}] ${obj.text}`)
     .join('\n');
 
-  return `You are a friendly English tutor conducting a "${scenario.title}" scenario. Your role is to guide the student through this interactive learning experience.
+  // Create role-specific descriptions
+  const getRoleDescription = () => {
+    if (scenario.character) {
+      return `You are a friendly English tutor simulating ${scenario.character} interacting with an Indian student who is practicing English conversation.`;
+    }
+    return `You are a friendly English tutor conducting a "${scenario.title}" scenario with an Indian student who is practicing English conversation.`;
+  };
 
-SCENARIO: ${scenario.title}
-DESCRIPTION: ${scenario.description}
+  const getInteractionGuidelines = () => {
+    // Generate context-specific guidelines based on scenario type
+    const guidelines = [
+      `- Act as ${scenario.character || 'a helpful conversation partner'} in this scenario`,
+      '- Guide the conversation naturally through the learning objectives',
+      '- Provide opportunities for the student to practice each objective',
+      '- Correct any grammatical mistakes gently'
+    ];
+
+    // Add scenario-specific vocabulary guidance
+    if (scenario.metadata?.template) {
+      const template = scenario.metadata.template;
+      if (template.includes('job-interview')) {
+        guidelines.push('- Use professional workplace vocabulary and phrases');
+      } else if (template.includes('friendship')) {
+        guidelines.push('- Use casual, friendly vocabulary and expressions');
+      } else if (template.includes('healthcare')) {
+        guidelines.push('- Use medical vocabulary and polite, professional phrases');
+      } else if (template.includes('banking')) {
+        guidelines.push('- Use financial terms and formal business language');
+      } else if (template.includes('movie') || template.includes('sports')) {
+        guidelines.push('- Use casual conversation vocabulary and opinion expressions');
+      } else {
+        guidelines.push(`- Use vocabulary appropriate for ${scenario.title.toLowerCase()}`);
+      }
+    } else {
+      guidelines.push(`- Use vocabulary appropriate for ${scenario.title.toLowerCase()}`);
+    }
+
+    return guidelines.join('\n');
+  };
+
+  return `${getRoleDescription()} Your role is to guide them through this interactive learning experience.
 
 KEY CONVERSATION OBJECTIVES:
 ${objectivesList}
 
 INTERACTION GUIDELINES:
-- Act as ${scenario.character || 'a helpful conversation partner'} in this scenario
-- Guide the conversation naturally through the learning objectives
-- Provide opportunities for the student to practice each objective
-- Correct any grammatical mistakes gently using the correction format
-- Use vocabulary appropriate for this scenario
-- Be encouraging and supportive
+${getInteractionGuidelines()}
 
 FEEDBACK PROTOCOL:
 1. When the student correctly fulfills an objective, add the corresponding number in brackets (e.g., [1]) at the start of your response

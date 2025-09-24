@@ -249,7 +249,7 @@ class AgenticScenarioGenerator {
     
     // Customize based on user's native language and level
     const character = this.selectCharacter(context, userProfile);
-    const objectives = this.generateObjectives(template.template, character, interest, userLevel);
+    const objectives = this.generateSpecificObjectives(template.template, context, interest, userLevel);
     
     return {
       id: scenarioId,
@@ -270,6 +270,74 @@ class AgenticScenarioGenerator {
     };
   }
 
+  generateSpecificObjectives(template, context, interest, userLevel) {
+    // Create specific, functional objectives based on template and context
+    const objectiveTemplates = {
+      'job-interview': [
+        { id: 'job-1', text: 'Introduce yourself professionally and state why you\'re interested in the position' },
+        { id: 'job-2', text: 'Discuss your relevant skills and work experience' },
+        { id: 'job-3', text: 'Ask thoughtful questions about the company or role' },
+        { id: 'job-4', text: 'Thank the interviewer and express your continued interest' }
+      ],
+      'team-meeting': [
+        { id: 'meeting-1', text: 'Contribute to the discussion with relevant ideas or updates' },
+        { id: 'meeting-2', text: 'Ask clarifying questions about project details' },
+        { id: 'meeting-3', text: 'Offer suggestions or solutions to challenges discussed' },
+        { id: 'meeting-4', text: 'Confirm your understanding of next steps and action items' }
+      ],
+      'friendship': [
+        { id: 'friend-1', text: 'Start a friendly conversation and show genuine interest' },
+        { id: 'friend-2', text: 'Share something about yourself or your interests' },
+        { id: 'friend-3', text: 'Ask questions to learn more about the other person' },
+        { id: 'friend-4', text: 'Suggest an activity or way to stay in touch' }
+      ],
+      'cultural-exchange': [
+        { id: 'culture-1', text: 'Share something unique about your own culture' },
+        { id: 'culture-2', text: 'Ask respectful questions about the other person\'s background' },
+        { id: 'culture-3', text: 'Find common interests or experiences to discuss' },
+        { id: 'culture-4', text: 'Express appreciation for learning about different cultures' }
+      ],
+      'healthcare': [
+        { id: 'health-1', text: 'Describe your symptoms or health concerns clearly' },
+        { id: 'health-2', text: 'Ask questions about treatment options or recommendations' },
+        { id: 'health-3', text: 'Confirm your understanding of the medical advice given' },
+        { id: 'health-4', text: 'Schedule follow-up appointments or ask about next steps' }
+      ],
+      'banking': [
+        { id: 'bank-1', text: 'Explain the banking service you need assistance with' },
+        { id: 'bank-2', text: 'Provide necessary information and ask about requirements' },
+        { id: 'bank-3', text: 'Inquire about fees, interest rates, or terms and conditions' },
+        { id: 'bank-4', text: 'Complete the transaction and confirm all details' }
+      ],
+      'movie-discussion': [
+        { id: 'movie-1', text: 'Share your opinion about a movie you\'ve recently watched' },
+        { id: 'movie-2', text: 'Ask for movie recommendations based on your preferences' },
+        { id: 'movie-3', text: 'Discuss what makes a good movie in your opinion' },
+        { id: 'movie-4', text: 'Make plans to watch a movie together or suggest a favorite' }
+      ],
+      'sports-conversation': [
+        { id: 'sports-1', text: 'Talk about your favorite sports or teams' },
+        { id: 'sports-2', text: 'Discuss recent games or sporting events' },
+        { id: 'sports-3', text: 'Ask about the other person\'s sports interests' },
+        { id: 'sports-4', text: 'Share experiences of playing or watching sports' }
+      ]
+    };
+
+    // Get template-specific objectives or fall back to generic ones
+    const templateObjectives = objectiveTemplates[template];
+    if (templateObjectives) {
+      return templateObjectives.map(obj => ({ ...obj, completed: false }));
+    }
+
+    // Fallback to generic objectives if template not found
+    return [
+      { id: `${template}-1`, text: `Engage in conversation about ${interest}` },
+      { id: `${template}-2`, text: `Express your opinions on ${interest}` },
+      { id: `${template}-3`, text: `Ask questions related to ${interest}` },
+      { id: `${template}-4`, text: `Share personal experiences with ${interest}` }
+    ].map(obj => ({ ...obj, completed: false }));
+  }
+
   selectCharacter(context, userProfile) {
     const characters = {
       'office': ['your new colleague', 'the team leader', 'a client'],
@@ -284,32 +352,16 @@ class AgenticScenarioGenerator {
     return contextCharacters[Math.floor(Math.random() * contextCharacters.length)];
   }
 
-  generateObjectives(template, character, interest, userLevel) {
-    const objectives = [];
-    const patterns = ['greeting', 'information', 'opinion', 'problem_solving', 'closing'];
-    
-    patterns.forEach((pattern, index) => {
-      if (index < 4) { // Generate 4 objectives
-        const patternTemplates = this.objectivePatterns[pattern];
-        const objectiveTemplate = patternTemplates[Math.floor(Math.random() * patternTemplates.length)];
-        
-        const objective = objectiveTemplate
-          .replace('{character}', character)
-          .replace('{topic}', interest);
-        
-        objectives.push({
-          id: `${template}-${pattern}-${index + 1}`,
-          text: objective,
-          completed: false
-        });
-      }
-    });
-    
-    return objectives;
-  }
-
   createPracticeScenario(strugglingData, userLevel, userProfile) {
     const scenarioId = `practice-${strugglingData.title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+    
+    // Generate specific practice objectives based on the struggling scenario
+    const practiceObjectives = [
+      { id: 'practice-1', text: `Review and practice key vocabulary from ${strugglingData.title}`, completed: false },
+      { id: 'practice-2', text: 'Use common phrases and expressions with confidence', completed: false },
+      { id: 'practice-3', text: 'Apply learned vocabulary naturally in conversation', completed: false },
+      { id: 'practice-4', text: 'Complete the interaction successfully without major difficulties', completed: false }
+    ];
     
     return {
       id: scenarioId,
@@ -319,12 +371,7 @@ class AgenticScenarioGenerator {
       status: 'practice',
       type: 'remedial',
       difficulty: userLevel,
-      objectives: [
-        { id: 'practice-1', text: `Review key concepts from ${strugglingData.title}` },
-        { id: 'practice-2', text: 'Practice common phrases and expressions' },
-        { id: 'practice-3', text: 'Apply learned vocabulary in context' },
-        { id: 'practice-4', text: 'Build confidence through repetition' }
-      ],
+      objectives: practiceObjectives,
       metadata: {
         basedOnScenario: strugglingData.title,
         strugglesCount: strugglingData.struggles,
@@ -348,6 +395,9 @@ class AgenticScenarioGenerator {
     const template = suitableTemplates[Math.floor(Math.random() * suitableTemplates.length)];
     const context = template.contexts[Math.floor(Math.random() * template.contexts.length)];
     
+    // Generate specific objectives for this adaptive scenario
+    const objectives = this.generateSpecificObjectives(template.template, context, 'general conversation', userLevel);
+    
     return {
       id: scenarioId,
       title: `${template.title} - Adaptive`,
@@ -356,12 +406,9 @@ class AgenticScenarioGenerator {
       status: 'adaptive',
       type: 'level-based',
       difficulty: userLevel,
-      objectives: [
-        { id: 'adaptive-1', text: 'Engage in level-appropriate conversation' },
-        { id: 'adaptive-2', text: 'Use vocabulary suitable for your level' },
-        { id: 'adaptive-3', text: 'Practice grammar patterns' },
-        { id: 'adaptive-4', text: 'Build fluency and confidence' }
-      ],
+      context: context,
+      character: this.selectCharacter(context, insights?.profile || {}),
+      objectives: objectives,
       metadata: {
         category: randomCategory,
         template: template.template,

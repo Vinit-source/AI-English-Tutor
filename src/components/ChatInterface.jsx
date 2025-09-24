@@ -22,6 +22,7 @@ const ChatInterface = () => {
     deepseek: false
   });
   const [objectives, setObjectives] = useState([]);
+  const [scenarioData, setScenarioData] = useState(null);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastCorrection, setLastCorrection] = useState('');
   const [error, setError] = useState(null);
@@ -63,9 +64,26 @@ const ChatInterface = () => {
 
   // Load objectives from scenario data
   useEffect(() => {
-    const scenarioData = getScenarioById(scenario);
-    if (scenarioData) {
-      setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
+    const data = getScenarioById(scenario);
+    setScenarioData(data);
+    
+    // First try to get objectives from scenario data
+    if (data && data.objectives) {
+      setObjectives(data.objectives.map(obj => ({ ...obj, completed: false })));
+    } else {
+      // Fallback: try to load objectives from localStorage (set by HomePage)
+      const storedObjectives = localStorage.getItem('currentScenarioObjectives');
+      if (storedObjectives) {
+        try {
+          const parsedObjectives = JSON.parse(storedObjectives);
+          setObjectives(parsedObjectives);
+        } catch (error) {
+          console.error('Error parsing stored objectives:', error);
+          setObjectives([]);
+        }
+      } else {
+        setObjectives([]);
+      }
     }
   }, [scenario]);
 
@@ -488,7 +506,8 @@ const ChatInterface = () => {
       {showObjectives && (
         <div ref={objectivesPanelRef}>
           <ObjectivesPanel 
-            scenario={scenario.replace(/-/g, ' ')}
+            scenario={scenarioData?.title || scenario.replace(/-/g, ' ')}
+            scenarioData={scenarioData}
             objectives={objectives}
             onClose={() => setShowObjectives(false)}
             onObjectiveChange={(id, checked) => {
