@@ -147,7 +147,35 @@ const ChatInterface = () => {
     };
   }, [showObjectives]);
 
-  // Simple translation function for common responses
+  // Generate meaningful scenario title
+  const getScenarioTitle = () => {
+    if (scenarioData?.title) {
+      return scenarioData.title;
+    }
+    
+    // Handle different scenario types with meaningful names
+    const scenarioId = scenario;
+    
+    if (scenarioId.startsWith('dynamic-') || scenarioId.startsWith('agentic-')) {
+      // Extract topic from dynamic scenario ID
+      const parts = scenarioId.split('-');
+      if (parts.length >= 2) {
+        const topic = parts.slice(1, -1).join(' '); // Remove 'dynamic'/'agentic' and timestamp
+        return `Personalized ${topic.charAt(0).toUpperCase() + topic.slice(1)} Conversation`;
+      }
+    }
+    
+    if (scenarioId.startsWith('practice-')) {
+      return `Practice Session: ${scenarioId.replace('practice-', '').replace(/-/g, ' ')}`;
+    }
+    
+    if (scenarioId.startsWith('adaptive-')) {
+      return `Adaptive Learning Session`;
+    }
+    
+    // Default formatting for regular scenarios
+    return scenarioId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
   const getTranslation = (text, language) => {
     const translations = {
       hindi: {
@@ -264,6 +292,8 @@ const ChatInterface = () => {
       
       // Send to API with context about correction practice
       let response;
+      let aiResponseData = null;
+      
       if (isCorrectingPractice) {
         // If this is a correction practice, use a simpler response pattern
         response = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
@@ -271,7 +301,13 @@ const ChatInterface = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
         // Normal API call for regular conversation
-        response = await getAIResponse(inputValue, userLanguage, modelToUse, scenario);
+        aiResponseData = await getAIResponse(inputValue, userLanguage, modelToUse, scenario);
+        response = aiResponseData.reply || aiResponseData;
+        
+        // Handle learned words if available
+        if (aiResponseData.learnedWords && aiResponseData.learnedWords.length > 0) {
+          // Record learned words in user memory will be handled in recordConversation
+        }
       }
       
       // Check if response contains objective markers and update objectives
@@ -292,7 +328,8 @@ const ChatInterface = () => {
       
       // Record the conversation in user memory
       const cleanResponse = response.replace(regex, "");
-      userMemory.recordConversation(inputValue, cleanResponse, scenario);
+      const learnedWords = (typeof aiResponseData === 'object' && aiResponseData.learnedWords) ? aiResponseData.learnedWords : [];
+      userMemory.recordConversation(inputValue, cleanResponse, scenario, learnedWords);
       
       // Remove thinking indicator and add AI response without objective markers
       setMessages([...newMessages, { type: 'ai', content: cleanResponse }]);
@@ -357,7 +394,7 @@ const ChatInterface = () => {
         content: data.reply
       });
       
-      return data.reply;
+      return data; // Return full data object instead of just reply
     } catch (error) {
       console.error('Error in AI response:', error);
       
@@ -433,7 +470,7 @@ const ChatInterface = () => {
             title="Back to home page"
           ></button>
           <span className="chat-title">
-            {scenario.replace(/-/g, ' ')}
+            {getScenarioTitle()}
             <span className="language-indicator">{userLanguage}</span>
           </span>
         </div>

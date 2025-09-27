@@ -35,6 +35,12 @@ class UserMemory {
           grammarPatterns: {},
           responseStyle: 'formal'
         },
+        learnedWords: {
+          // Structure: { word: { translation, confidence, learnedDate, context, usageCount } }
+          masteredVocabulary: {},
+          totalLearnedCount: 0,
+          lastUpdated: null
+        },
         adaptationSettings: {
           personalizedRecommendations: true,
           dynamicScenarios: true,
@@ -131,13 +137,16 @@ class UserMemory {
     this.saveMemory(memory);
   }
 
-  // Track conversation patterns
-  recordConversation(userMessage, aiResponse, scenarioId) {
+  // Track conversation patterns and learned words
+  recordConversation(userMessage, aiResponse, scenarioId, learnedWordsFromAI = []) {
     const memory = this.getMemory();
     if (!memory) return;
 
     // Analyze user message for patterns
     this.analyzeUserMessage(userMessage, memory);
+    
+    // Process learned words from AI response
+    this.processLearnedWords(learnedWordsFromAI, memory, scenarioId);
     
     // Store conversation history (keep last 50 exchanges)
     const conversationEntry = {
@@ -146,7 +155,8 @@ class UserMemory {
       userMessage,
       aiResponse,
       messageLength: userMessage.length,
-      wordCount: userMessage.split(' ').length
+      wordCount: userMessage.split(' ').length,
+      learnedWordsCount: learnedWordsFromAI.length
     };
 
     let conversationHistory = this.getConversationHistory();
@@ -191,6 +201,100 @@ class UserMemory {
           (memory.conversationPatterns.commonTopics[topic] || 0) + mentions;
       }
     });
+  }
+
+  // Process learned words identified by AI
+  processLearnedWords(learnedWordsFromAI, memory, scenarioId) {
+    if (!Array.isArray(learnedWordsFromAI) || learnedWordsFromAI.length === 0) {
+      return;
+    }
+
+    learnedWordsFromAI.forEach(wordData => {
+      const { english, translation, confidence = 0.8 } = wordData;
+      
+      if (!english || !translation) {
+        return; // Skip incomplete data
+      }
+
+      const wordKey = english.toLowerCase().trim();
+      
+      // Only consider words with high confidence (>= 0.7) as truly learned
+      if (confidence >= 0.7) {
+        const currentTime = new Date().toISOString();
+        
+        if (memory.learnedWords.masteredVocabulary[wordKey]) {
+          // Update existing learned word
+          const existingWord = memory.learnedWords.masteredVocabulary[wordKey];
+          existingWord.usageCount = (existingWord.usageCount || 1) + 1;
+          existingWord.lastUsed = currentTime;
+          existingWord.contexts = existingWord.contexts || [];
+          
+          // Add scenario context if not already present
+          if (!existingWord.contexts.includes(scenarioId)) {
+            existingWord.contexts.push(scenarioId);
+          }
+          
+          // Update confidence (weighted average)
+          existingWord.confidence = (existingWord.confidence * 0.7) + (confidence * 0.3);
+        } else {
+          // Add new learned word
+          memory.learnedWords.masteredVocabulary[wordKey] = {
+            english: english.trim(),
+            translation: translation.trim(),
+            confidence: confidence,
+            learnedDate: currentTime,
+            lastUsed: currentTime,
+            usageCount: 1,
+            contexts: [scenarioId]
+          };
+          
+          memory.learnedWords.totalLearnedCount++;
+        }
+        
+        memory.learnedWords.lastUpdated = currentTime;
+      }
+    });
+  }
+
+  // Get learned words for display
+  getLearnedWords() {
+    const memory = this.getMemory();
+    if (!memory || !memory.learnedWords) return [];
+
+    return Object.entries(memory.learnedWords.masteredVocabulary)
+      .map(([wordKey, wordData]) => ({
+        word: wordKey,
+        ...wordData
+      }))
+      .sort((a, b) => new Date(b.learnedDate) - new Date(a.learnedDate));
+  }
+
+  // Get learned words statistics
+  getLearnedWordsStats() {
+    const memory = this.getMemory();
+    if (!memory || !memory.learnedWords) return null;
+
+    const learnedWords = this.getLearnedWords();
+    const now = new Date();
+    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const wordsThisWeek = learnedWords.filter(word => 
+      new Date(word.learnedDate) > thisWeek
+    ).length;
+
+    const wordsThisMonth = learnedWords.filter(word => 
+      new Date(word.learnedDate) > thisMonth
+    ).length;
+
+    return {
+      totalLearned: memory.learnedWords.totalLearnedCount,
+      learnedThisWeek: wordsThisWeek,
+      learnedThisMonth: wordsThisMonth,
+      averageConfidence: learnedWords.length > 0 
+        ? learnedWords.reduce((sum, word) => sum + word.confidence, 0) / learnedWords.length 
+        : 0
+    };
   }
 
   getConversationHistory() {

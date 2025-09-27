@@ -127,11 +127,22 @@ const HomePage = () => {
   return (
     <div className="home-container">
       <header className="header">
-        <h1 className="app-title">AI English Tutor</h1>
-        <p className="app-subtitle">
-          Practice English conversations with AI in realistic scenarios.
-          Choose your native language and start learning today.
-        </p>
+        <div className="header-top">
+          <div className="title-section">
+            <h1 className="app-title">AI English Tutor</h1>
+            <p className="app-subtitle">
+              Practice English conversations with AI in realistic scenarios.
+              Choose your native language and start learning today.
+            </p>
+          </div>
+          <button 
+            className="learned-words-btn" 
+            onClick={() => navigate('/learned-words')}
+            aria-label="View learned words"
+          >
+            📚 My Words
+          </button>
+        </div>
         {userInsights && (
           <div className="user-insights">
             <p className="insights-text">
