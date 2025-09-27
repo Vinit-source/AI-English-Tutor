@@ -656,6 +656,68 @@ class UserMemory {
     localStorage.removeItem(this.conversationKey);
     this.initialize();
   }
+
+  // Add test data for development/testing purposes
+  addTestLearningData() {
+    const testWords = [
+      {
+        english: 'wonderful',
+        translation: 'अद्भुत',
+        confidence: 0.9,
+        learnedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+        contexts: ['over-a-phone-call']
+      },
+      {
+        english: 'appreciate',
+        translation: 'सराहना करना',
+        confidence: 0.85,
+        learnedDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        contexts: ['restaurant']
+      },
+      {
+        english: 'opportunity',
+        translation: 'अवसर',
+        confidence: 0.8,
+        learnedDate: new Date().toISOString(), // today
+        contexts: ['coffee-shop', 'over-a-phone-call']
+      }
+    ];
+
+    const testPhrases = [
+      {
+        english: 'having a wonderful time',
+        translation: 'बहुत अच्छा समय बिता रहे हैं',
+        confidence: 0.88,
+        type: 'expression',
+        learnedDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        contexts: ['over-a-phone-call']
+      },
+      {
+        english: 'looking forward to',
+        translation: 'का इंतजार कर रहे हैं',
+        confidence: 0.82,
+        type: 'phrasal_verb',
+        learnedDate: new Date().toISOString(),
+        contexts: ['restaurant', 'coffee-shop']
+      }
+    ];
+
+    const memory = this.getMemory();
+    if (!memory) return;
+
+    // Add test words
+    testWords.forEach(wordData => {
+      this.processLearnedWords([wordData], memory, wordData.contexts[0]);
+    });
+
+    // Add test phrases
+    testPhrases.forEach(phraseData => {
+      this.processLearnedPhrases([phraseData], memory, phraseData.contexts[0]);
+    });
+
+    this.saveMemory(memory);
+    console.log('Test learning data added successfully');
+  }
 }
 
 // Export singleton instance
