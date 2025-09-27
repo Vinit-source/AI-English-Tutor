@@ -91,7 +91,6 @@ const HomePage = () => {
     if (insights && insights.preferences.favoriteScenarios.length > 0) {
       const personalized = generatePersonalizedScenarios(3);
       setPersonalizedScenarios(personalized);
-      setShowPersonalized(true);
     }
     
     // Update user profile with current language selection

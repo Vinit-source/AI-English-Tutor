@@ -1,10 +1,37 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react'; // Import useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
 import { getScenarioById, loadScenarioPrompt } from '../data/scenarioLoader';
 import { userMemory } from '../utils/userMemory';
 import '../styles/ChatInterface.css';
+
+// Helper function to extract only the main English text from AI response
+const extractEnglishText = (content) => {
+  // Remove translation part (text within parentheses)
+  let englishText = content.replace(/\(.*?\)/g, "").trim();
+  
+  // Remove correction suggestions if present
+  const correctionPatterns = [
+    "you should say:", "the correct way:", "try saying:", 
+    "we usually say:", "it's better to say:", "more natural to say:",
+    "you can say:", "correct sentence is:"
+  ];
+  
+  correctionPatterns.forEach(pattern => {
+    const index = englishText.toLowerCase().indexOf(pattern.toLowerCase());
+    if (index !== -1) {
+      // Try to keep only the text before the pattern
+      englishText = englishText.substring(0, index).trim();
+    }
+  });
+  
+  // Remove objective markers like [1], [2] etc.
+  englishText = englishText.replace(/\s?\[\d+\]/g, "").trim();
+
+  return englishText;
+};
+
 
 const ChatInterface = () => {
   const { scenario } = useParams();
@@ -33,6 +60,11 @@ const ChatInterface = () => {
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
   const conversationHistory = useRef([]);
+  const [isListening, setIsListening] = useState(false);
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true); // TTS enabled by default
+  const [isSpeaking, setIsSpeaking] = useState(false); // Track if TTS is active
+  const recognitionRef = useRef(null);
+  const utteranceRef = useRef(null); // Ref to keep track of the current utterance
   const objectivesPanelRef = useRef(null);
 
   // Get the stored language preference
@@ -47,6 +79,13 @@ const ChatInterface = () => {
 
   // Initialize the chat (without welcome message)
   useEffect(() => {
+    const welcomeMessage = `Welcome to the "${scenario.replace(/-/g, ' ')}" scenario! How can I help you practice your English today? (${getTranslation('Welcome', userLanguage)})`;
+    setMessages([{ 
+      type: 'ai', 
+      content: welcomeMessage
+    }]);
+    // Don't auto-speak the welcome message - wait for user interaction
+
     // Reset conversation history and rate limits when scenario changes
     conversationHistory.current = [];
     setRateLimitedModels({
@@ -248,6 +287,230 @@ const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // --- STT (Speech Recognition) Setup ---
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Speech Recognition API not supported in this browser.");
+      // Optionally disable STT button or show a message
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false; // Process speech after user stops talking
+    recognition.interimResults = false; // Get final results only
+    recognition.lang = 'en-US'; // Set language to English
+
+    recognition.onresult = (event) => {
+      if (event.results.length > 0) {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(transcript); // Update input field with transcript
+        setError({ 
+          message: `Heard: "${transcript}". You can edit it or press Send.`, 
+          timestamp: Date.now(),
+          type: 'success'
+        });
+        setTimeout(() => setError(null), 3000);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      
+      let errorMessage = 'Voice input failed. ';
+      switch(event.error) {
+        case 'not-allowed':
+          errorMessage += 'Please allow microphone access and try again.';
+          break;
+        case 'no-speech':
+          errorMessage += 'No speech detected. Please try speaking again.';
+          break;
+        case 'audio-capture':
+          errorMessage += 'No microphone found. Please check your microphone.';
+          break;
+        case 'network':
+          errorMessage += 'Network error. Please check your connection.';
+          break;
+        default:
+          errorMessage += `Error: ${event.error}`;
+      }
+      
+      setError({ 
+        message: errorMessage, 
+        timestamp: Date.now(),
+        type: 'warning'
+      });
+      setTimeout(() => setError(null), 5000);
+    };
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError({ 
+        message: 'Listening... Speak now!', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => {
+        if (isListening) setError(null);
+      }, 2000);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    // Cleanup function
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []); // Run only once on mount
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      setError({ 
+        message: 'Voice input not available in this browser. Please type your message instead.', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setError(null); // Clear any listening messages
+    } else {
+      try {
+        // Cancel TTS if it's speaking
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          setIsSpeaking(false);
+        }
+        
+        // Clear the input field when starting to listen
+        setInputValue('');
+        
+        // Clear any existing errors
+        setError(null);
+        
+        recognitionRef.current.start();
+        
+      } catch (e) {
+        // Handle potential errors like starting recognition too soon after stopping
+        console.error("Could not start recognition:", e);
+        setError({ 
+          message: "Could not start voice input. Please ensure microphone permissions are granted and try again.", 
+          timestamp: Date.now(),
+          type: 'warning'
+        });
+        setTimeout(() => setError(null), 5000);
+        setIsListening(false);
+      }
+    }
+  };
+
+  // --- TTS (Speech Synthesis) Setup ---
+  const speakText = useCallback((text) => {
+    if (!isTTSEnabled || !text || typeof window.speechSynthesis === 'undefined') {
+      return;
+    }
+
+    // Check if speech synthesis is supported
+    if (!window.speechSynthesis) {
+      console.warn('Speech synthesis not supported in this browser');
+      return;
+    }
+
+    try {
+      // Cancel any ongoing speech first
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+
+      const englishTextToSpeak = extractEnglishText(text);
+      if (!englishTextToSpeak || englishTextToSpeak.length === 0) return; // Don't speak if no English text found
+
+      const utterance = new SpeechSynthesisUtterance(englishTextToSpeak);
+      utterance.lang = 'en-US'; // Set language
+      utterance.rate = 0.9; // Slightly slower for better comprehension
+      utterance.pitch = 1.0; // Adjust pitch as needed
+      utterance.volume = 0.8; // Slightly lower volume
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setError(null); // Clear any existing errors when speech starts successfully
+      };
+      
+      utterance.onend = () => setIsSpeaking(false);
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+        setIsSpeaking(false);
+        
+        // Only show error if it's not a user-initiated cancellation
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          setError({ 
+            message: `Text-to-speech error: ${event.error}. Click the speaker icon to try again.`, 
+            timestamp: Date.now(),
+            type: 'warning'
+          });
+          // Auto-clear TTS errors after 3 seconds
+          setTimeout(() => setError(null), 3000);
+        }
+      };
+      
+      utteranceRef.current = utterance; // Store reference
+      
+      // Add a small delay to ensure proper initialization
+      setTimeout(() => {
+        if (utteranceRef.current === utterance) { // Make sure we're still trying to speak this utterance
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
+
+    } catch (error) {
+      console.error('TTS initialization error:', error);
+      setIsSpeaking(false);
+      setError({ 
+        message: 'Text-to-speech is not available. Your browser may not support this feature.', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => setError(null), 3000);
+    }
+  }, [isTTSEnabled]); // Dependency on isTTSEnabled
+
+  const toggleTTS = () => {
+    const newState = !isTTSEnabled;
+    setIsTTSEnabled(newState);
+    
+    if (!newState && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel(); // Stop speaking if TTS is disabled
+      setIsSpeaking(false);
+    } else if (newState && messages.length > 0) {
+      // When enabling TTS, speak the last AI message if available
+      const lastAIMessage = messages.slice().reverse().find(msg => msg.type === 'ai');
+      if (lastAIMessage) {
+        speakText(lastAIMessage.content);
+      }
+    }
+  };
+  
+  // Cleanup TTS on component unmount
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+
   const findAvailableModel = () => {
     // Try to use the currently selected model if it's not rate limited
     if (!rateLimitedModels[llmModel]) {
@@ -267,7 +530,7 @@ const ChatInterface = () => {
     return 'server';
   };
 
-  const enterPracticeMode = (correctionText) => {
+  const enterPracticeMode = useCallback((correctionText) => { // Wrap in useCallback
     setInputValue(correctionText);
     setIsPracticeMode(true);
     setLastCorrection(correctionText);
@@ -275,38 +538,45 @@ const ChatInterface = () => {
     setTimeout(() => {
       if (inputRef.current) inputRef.current.focus();
     }, 100);
-  };
+  }, []); // No dependencies needed if it only uses setters
 
-  const handleSendMessage = async () => {
-    if (inputValue.trim() === '' || isLoading) return;
+  const handleSendMessage = async (messageToSend = inputValue) => { // Allow passing message directly
+    const currentMessage = messageToSend.trim(); // Use passed message or state
+    if (currentMessage === '' || isLoading) return;
 
     setError(null); // Clear any existing errors
 
-    // Create a flag to track if this is a correction practice
-    const isCorrectingPractice = isPracticeMode && inputValue.trim().toLowerCase() === lastCorrection.toLowerCase();
+    // Stop TTS if it's speaking when user sends a message
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    // Stop STT if it's listening
+    if (isListening) {
+       recognitionRef.current?.stop();
+       setIsListening(false);
+    }
+
+
+    const isCorrectingPractice = isPracticeMode && currentMessage.toLowerCase() === lastCorrection.toLowerCase();
     
-    // Add user message to chat
     const newMessages = [...messages, { 
       type: 'user', 
-      content: inputValue,
+      content: currentMessage, // Use currentMessage
       isPractice: isPracticeMode
     }];
     
     setMessages(newMessages);
-    setInputValue('');
+    setInputValue(''); // Clear input field
     setIsLoading(true);
     
-    // Exit practice mode after sending
     if (isPracticeMode) {
       setIsPracticeMode(false);
       setLastCorrection('');
     }
 
     try {
-      // Find an available model
       const modelToUse = findAvailableModel();
-      
-      // Add thinking indicator
       setMessages([...newMessages, { type: 'thinking' }]);
       
       // Send to API with context about correction practice
@@ -314,9 +584,7 @@ const ChatInterface = () => {
       let aiResponseData = null;
       
       if (isCorrectingPractice) {
-        // If this is a correction practice, use a simpler response pattern
-        response = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
-        // Short delay to simulate API call time for better UX
+        responseText = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
         // Normal API call for regular conversation
@@ -329,10 +597,9 @@ const ChatInterface = () => {
         }
       }
       
-      // Check if response contains objective markers and update objectives
       const updatedObjectives = [...objectives];
       const regex = /\s?\[\d+\]/g;
-      const matches = response.match(regex) || [];
+      const matches = responseText.match(regex) || [];
       
       matches.forEach(match => {
         const matchNumber = match.match(/\d+/)[0];
@@ -342,20 +609,29 @@ const ChatInterface = () => {
         }
       });
       
-      // Update objectives state
       setObjectives(updatedObjectives);
       
       // Record the conversation in user memory
       const cleanResponse = response.replace(regex, "");
-      const learnedWords = (typeof aiResponseData === 'object' && aiResponseData.learnedWords) ? aiResponseData.learnedWords : [];
-      userMemory.recordConversation(inputValue, cleanResponse, scenario, learnedWords);
       
-      // Remove thinking indicator and add AI response without objective markers
-      setMessages([...newMessages, { type: 'ai', content: cleanResponse }]);
+      // Remove thinking indicator before adding AI response
+      setMessages(prevMessages => [...prevMessages.filter(m => m.type !== 'thinking'), { type: 'ai', content: cleanResponse }]);
+      
+      // Speak the AI response
+      speakText(cleanResponse); 
+      
+      const learnedWords = (typeof aiResponseData === 'object' && aiResponseData.learnedWords) ? aiResponseData.learnedWords : [];
+      
+      // Save the conversation in user memory
+      userMemory.recordConversation(inputValue, cleanResponse, scenario);
+
+      // Record learned words in user memory
+      learnedWords.forEach(word => userMemory.recordLearnedWord(word));
+
     } catch (error) {
       console.error('Error getting AI response:', error);
-      // Remove thinking indicator and add error message
-      setMessages([...newMessages, { 
+       // Remove thinking indicator before adding error message
+      setMessages(prevMessages => [...prevMessages.filter(m => m.type !== 'thinking'), { 
         type: 'ai', 
         content: 'Sorry, I had trouble responding. Please try again or select a different AI model.' 
       }]);
@@ -457,11 +733,13 @@ const ChatInterface = () => {
   // Expose the practice mode function to the window so ChatMessage can access it
   useEffect(() => {
     window.enterPracticeMode = enterPracticeMode;
+    window.speakText = speakText; // Also expose speakText function
     
     return () => {
       delete window.enterPracticeMode;
+      delete window.speakText;
     };
-  }, []);
+  }, [enterPracticeMode, speakText]); // Add speakText to dependency array
 
   // Add a handler for when user starts typing
   const handleInputChange = (e) => {
@@ -494,6 +772,23 @@ const ChatInterface = () => {
           </span>
         </div>
         <div className="chat-controls">
+          {/* TTS Toggle Button */}
+          <button
+            className={`tts-toggle-btn ${isTTSEnabled ? 'enabled' : ''} ${isSpeaking ? 'speaking' : ''}`}
+            onClick={toggleTTS}
+            aria-label={
+              isSpeaking ? "Stop speech" : 
+              isTTSEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"
+            }
+            title={
+              isSpeaking ? "Stop speaking" :
+              isTTSEnabled ? "Disable TTS" : "Enable TTS"
+            }
+          >
+            {/* Simple Speaker Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            {!isTTSEnabled && <span className="tts-disabled-line"></span>}
+          </button>
           <select
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
@@ -529,33 +824,47 @@ const ChatInterface = () => {
       </div>
       
       <div className="chat-input-container">
+         {/* STT Button */}
+         <button 
+            className={`stt-toggle-btn ${isListening ? 'listening' : ''}`}
+            onClick={toggleListening}
+            disabled={!recognitionRef.current || isLoading} // Disable if API not supported or loading response
+            aria-label={isListening ? "Stop listening" : "Start voice input"}
+            title={isListening ? "Stop listening" : "Start voice input"}
+         >
+            {/* Simple Mic Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+         </button>
         <input
           ref={inputRef}
           type="text"
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSendMessage();
+            if (e.key === 'Enter') handleSendMessage(); // Use modified handleSendMessage
             if (e.key === 'Escape') {
               if (isPracticeMode) {
                 setIsPracticeMode(false);
                 setInputValue('');
               } else {
+                // Stop listening or speaking if navigating away
+                if (isListening) recognitionRef.current?.stop();
+                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
                 navigate('/');
               }
             }
           }}
-          placeholder={isPracticeMode ? "Practice the corrected phrase..." : "Type a message..."}
-          disabled={isLoading}
+          placeholder={isPracticeMode ? "Practice the corrected phrase..." : (isListening ? "Listening..." : "Type or use mic...")}
+          disabled={isLoading || isListening} // Disable input while listening too
           className={isPracticeMode ? 'practice-mode' : ''}
           autoFocus
         />
         <button 
-          onClick={handleSendMessage}
-          disabled={isLoading || inputValue.trim() === ''}
+          onClick={() => handleSendMessage()} // Use modified handleSendMessage
+          disabled={isLoading || inputValue.trim() === '' || isListening} // Disable send while listening
           className={`${isLoading ? 'sending' : ''} ${isPracticeMode ? 'practice-mode' : ''}`}
         >
-          {isLoading ? 'Sending...' : isPracticeMode ? 'Practice' : 'Send'}
+          {isLoading ? '...' : isPracticeMode ? 'Practice' : 'Send'} {/* Simpler loading text */}
         </button>
       </div>
 
