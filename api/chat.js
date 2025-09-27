@@ -15,15 +15,15 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Load system prompt from file
-async function loadSystemPrompt(scenario, language = 'hindi') {
+async function loadSystemPrompt(scenario, language = 'hindi', objectives = null) {
   try {
     let promptContent;
     
     // Check if it's a dynamic scenario
     if (scenario.startsWith('dynamic-') || scenario.startsWith('agentic-') || 
         scenario.startsWith('practice-') || scenario.startsWith('adaptive-')) {
-      // Generate dynamic prompt
-      promptContent = generateDynamicPrompt(scenario, language);
+      // Generate dynamic prompt with scenario-specific objectives
+      promptContent = generateDynamicPrompt(scenario, language, objectives);
     } else {
       // Load static prompt
       const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
@@ -122,11 +122,11 @@ AGENTIC ADAPTATION:
     return promptContent;
   } catch (error) {
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
-    return generateFallbackPrompt(scenario, language);
+    return generateFallbackPrompt(scenario, language, objectives);
   }
 }
 
-function generateDynamicPrompt(scenario, language) {
+function generateDynamicPrompt(scenario, language, objectives = null) {
   const scenarioType = scenario.split('-')[0]; // dynamic, agentic, practice, adaptive
   const scenarioDetails = scenario.split('-').slice(1).join(' ');
   
@@ -135,11 +135,23 @@ function generateDynamicPrompt(scenario, language) {
 SCENARIO TYPE: ${scenarioType.toUpperCase()}
 This is a dynamically generated scenario tailored to the user's learning patterns and interests.
 
-KEY CONVERSATION OBJECTIVES:
+KEY CONVERSATION OBJECTIVES:`;
+
+  // Use scenario-specific objectives if provided, otherwise use generic ones
+  if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+    objectives.forEach((objective, index) => {
+      basePrompt += `\n${index + 1}. [${index + 1}] ${objective.text}`;
+    });
+  } else {
+    // Fallback to generic objectives
+    basePrompt += `
 1. [1] Engage in conversation appropriate to your skill level
 2. [2] Express your thoughts and opinions clearly
 3. [3] Ask relevant questions to keep the conversation flowing
-4. [4] Practice vocabulary and grammar naturally in context
+4. [4] Practice vocabulary and grammar naturally in context`;
+  }
+
+  basePrompt += `
 
 INTERACTION GUIDELINES:
 - Be encouraging and adaptive to the user's level
@@ -148,9 +160,10 @@ INTERACTION GUIDELINES:
 - Correct any grammatical mistakes gently
 - Use vocabulary appropriate for the student's demonstrated level
 - Be patient and supportive
+- Drive the conversation to an end when all objectives are accomplished.
 
 FEEDBACK PROTOCOL:
-1. When the student correctly fulfills an objective, add the corresponding number in brackets (e.g., [1]) at the start of your response
+1. When the student correctly fulfills an objective - by correcting completing the objective IN THEIR OWN MESSAGE (role:user), add the corresponding number in brackets (e.g., [1]) at the start of your response
 2. For grammar or phrasing mistakes:
    a. Acknowledge their meaning
    b. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
@@ -180,23 +193,87 @@ This is a remedial practice session. The user has struggled with similar scenari
   basePrompt += `
 
 FORMAT:
-Always provide your English response first, followed by its translation in parentheses.
-Example: "Welcome to this scenario! How are you feeling today? (Hindi: इस परिदृश्य में आपका स्वागत है! आज आप कैसा महसूस कर रहे हैं?)"`;
+{
+  "englishResponse": "Great! Yes, let's explore this topic into detail. Suggest a sub-topic to start with.",
+  "localTranslation": "बढ़िया! हाँ, आइए इस विषय पर विस्तार से चर्चा करें। शुरुआत के लिए कोई उप-विषय सुझाएँ।", // Assuming local language was selected as Hindi
+  "learnedWords": [ // learned words from the user's previous message
+    {
+      "english": "explore",
+      "translation": "अन्वेषण करना", 
+      "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [ // learned phrases from the user's previous message
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
+    }
+  ]
+}`;
 
   return basePrompt;
 }
 
-function generateFallbackPrompt(scenario, language) {
-  return `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
+function generateFallbackPrompt(scenario, language, objectives = null) {
+  let prompt = `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
 
-Please:
+KEY CONVERSATION OBJECTIVES:`;
+
+  // Use scenario-specific objectives if provided, otherwise use generic ones
+  if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+    objectives.forEach((objective, index) => {
+      prompt += `\n${index + 1}. [${index + 1}] ${objective.text}`;
+    });
+  } else {
+    // Fallback to generic objectives
+    prompt += `
+1. [1] Engage in conversation appropriate to the scenario
+2. [2] Express thoughts and opinions clearly
+3. [3] Ask relevant questions to keep the conversation flowing
+4. [4] Practice vocabulary and grammar naturally in context`;
+  }
+
+  prompt += `
+
+INTERACTION GUIDELINES:
 - Be encouraging and supportive
 - Help them practice natural English conversation
 - Correct mistakes gently using the correction format
 - Adapt to their skill level
 - Ask engaging questions to keep the conversation flowing
+- Drive the conversation to an end when all objectives are accomplished.
 
-Always provide your English response first, followed by its translation in ${language} in parentheses.`;
+FEEDBACK PROTOCOL:
+1. When the student correctly fulfills an objective - by correcting completing the objective IN THEIR OWN MESSAGE (role:user), add the corresponding number in brackets (e.g., [1]) at the start of your response
+2. For grammar or phrasing mistakes:
+   a. Acknowledge their meaning
+   b. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
+   c. Explanation if needed
+
+FORMAT:
+{
+  "englishResponse": "Great! Yes, let's explore this topic into detail. Suggest a sub-topic to start with.",
+  "localTranslation": "बढ़िया! हाँ, आइए इस विषय पर विस्तार से चर्चा करें। शुरुआत के लिए कोई उप-विषय सुझाएँ।", // Assuming local language was selected as Hindi
+  "learnedWords": [ // learned words from the user's previous message
+    {
+      "english": "explore",
+      "translation": "अन्वेषण करना", 
+      "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [ // learned phrases from the user's previous message
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
+    }
+  ]
+}`;
+
+  return prompt;
 }
 
 // Validate required environment variables
@@ -255,7 +332,7 @@ async function chatHandler(req, res) {
     }
 
     // Request body validation
-    const { message, language, model, scenario, conversationHistory } = req.body;
+    const { message, language, model, scenario, conversationHistory, objectives } = req.body;
     
     if (!message || !language || !model || !scenario) {
       return res.status(400).json({ 
@@ -264,8 +341,8 @@ async function chatHandler(req, res) {
       });
     }
 
-    // Create system prompt
-    const systemPrompt = await loadSystemPrompt(scenario, language);
+    // Create system prompt with scenario-specific objectives if available
+    const systemPrompt = await loadSystemPrompt(scenario, language, objectives);
     if (!systemPrompt) {
       return res.status(500).json({ 
         error: 'Server error',
