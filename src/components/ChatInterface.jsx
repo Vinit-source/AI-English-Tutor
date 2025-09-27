@@ -73,7 +73,7 @@ const ChatInterface = () => {
       type: 'ai', 
       content: welcomeMessage
     }]);
-    speakText(welcomeMessage); // Speak the initial welcome message
+    // Don't auto-speak the welcome message - wait for user interaction
     
     // Reset conversation history and rate limits when scenario changes
     conversationHistory.current = [];
@@ -83,7 +83,7 @@ const ChatInterface = () => {
       gemma: false,
       deepseek: false
     });
-  }, [scenario, userLanguage]); // Removed speakText from dependencies
+  }, [scenario, userLanguage]);
 
   // Load objectives from scenario data
   useEffect(() => {
@@ -162,16 +162,58 @@ const ChatInterface = () => {
     recognition.lang = 'en-US'; // Set language to English
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInputValue(transcript); // Update input field with transcript
-      // Optionally auto-send the message after transcription
-      // handleSendMessage(transcript); 
+      if (event.results.length > 0) {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(transcript); // Update input field with transcript
+        setError({ 
+          message: `Heard: "${transcript}". You can edit it or press Send.`, 
+          timestamp: Date.now(),
+          type: 'success'
+        });
+        setTimeout(() => setError(null), 3000);
+      }
     };
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      setError({ message: `Speech recognition error: ${event.error}`, timestamp: Date.now() });
       setIsListening(false);
+      
+      let errorMessage = 'Voice input failed. ';
+      switch(event.error) {
+        case 'not-allowed':
+          errorMessage += 'Please allow microphone access and try again.';
+          break;
+        case 'no-speech':
+          errorMessage += 'No speech detected. Please try speaking again.';
+          break;
+        case 'audio-capture':
+          errorMessage += 'No microphone found. Please check your microphone.';
+          break;
+        case 'network':
+          errorMessage += 'Network error. Please check your connection.';
+          break;
+        default:
+          errorMessage += `Error: ${event.error}`;
+      }
+      
+      setError({ 
+        message: errorMessage, 
+        timestamp: Date.now(),
+        type: 'warning'
+      });
+      setTimeout(() => setError(null), 5000);
+    };
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError({ 
+        message: 'Listening... Speak now!', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => {
+        if (isListening) setError(null);
+      }, 2000);
     };
 
     recognition.onend = () => {
@@ -189,10 +231,19 @@ const ChatInterface = () => {
   }, []); // Run only once on mount
 
   const toggleListening = () => {
-    if (!recognitionRef.current) return;
+    if (!recognitionRef.current) {
+      setError({ 
+        message: 'Voice input not available in this browser. Please type your message instead.', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
 
     if (isListening) {
       recognitionRef.current.stop();
+      setError(null); // Clear any listening messages
     } else {
       try {
         // Cancel TTS if it's speaking
@@ -200,13 +251,24 @@ const ChatInterface = () => {
           window.speechSynthesis.cancel();
           setIsSpeaking(false);
         }
+        
+        // Clear the input field when starting to listen
+        setInputValue('');
+        
+        // Clear any existing errors
+        setError(null);
+        
         recognitionRef.current.start();
-        setIsListening(true);
-        setInputValue(''); // Clear input field when starting listening
+        
       } catch (e) {
         // Handle potential errors like starting recognition too soon after stopping
         console.error("Could not start recognition:", e);
-        setError({ message: "Could not start voice input. Please try again.", timestamp: Date.now() });
+        setError({ 
+          message: "Could not start voice input. Please ensure microphone permissions are granted and try again.", 
+          timestamp: Date.now(),
+          type: 'warning'
+        });
+        setTimeout(() => setError(null), 5000);
         setIsListening(false);
       }
     }
@@ -218,38 +280,84 @@ const ChatInterface = () => {
       return;
     }
 
-    // Cancel any ongoing speech first
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    // Check if speech synthesis is supported
+    if (!window.speechSynthesis) {
+      console.warn('Speech synthesis not supported in this browser');
+      return;
     }
 
-    const englishTextToSpeak = extractEnglishText(text);
-    if (!englishTextToSpeak) return; // Don't speak if no English text found
+    try {
+      // Cancel any ongoing speech first
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
 
-    const utterance = new SpeechSynthesisUtterance(englishTextToSpeak);
-    utterance.lang = 'en-US'; // Set language
-    utterance.rate = 1.0; // Adjust speed as needed
-    utterance.pitch = 1.0; // Adjust pitch as needed
+      const englishTextToSpeak = extractEnglishText(text);
+      if (!englishTextToSpeak || englishTextToSpeak.length === 0) return; // Don't speak if no English text found
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event.error);
-      setError({ message: `Speech synthesis error: ${event.error}`, timestamp: Date.now() });
+      const utterance = new SpeechSynthesisUtterance(englishTextToSpeak);
+      utterance.lang = 'en-US'; // Set language
+      utterance.rate = 0.9; // Slightly slower for better comprehension
+      utterance.pitch = 1.0; // Adjust pitch as needed
+      utterance.volume = 0.8; // Slightly lower volume
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setError(null); // Clear any existing errors when speech starts successfully
+      };
+      
+      utterance.onend = () => setIsSpeaking(false);
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event.error);
+        setIsSpeaking(false);
+        
+        // Only show error if it's not a user-initiated cancellation
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          setError({ 
+            message: `Text-to-speech error: ${event.error}. Click the speaker icon to try again.`, 
+            timestamp: Date.now(),
+            type: 'warning'
+          });
+          // Auto-clear TTS errors after 3 seconds
+          setTimeout(() => setError(null), 3000);
+        }
+      };
+      
+      utteranceRef.current = utterance; // Store reference
+      
+      // Add a small delay to ensure proper initialization
+      setTimeout(() => {
+        if (utteranceRef.current === utterance) { // Make sure we're still trying to speak this utterance
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
+
+    } catch (error) {
+      console.error('TTS initialization error:', error);
       setIsSpeaking(false);
-    };
-    
-    utteranceRef.current = utterance; // Store reference
-    window.speechSynthesis.speak(utterance);
-
+      setError({ 
+        message: 'Text-to-speech is not available. Your browser may not support this feature.', 
+        timestamp: Date.now(),
+        type: 'info'
+      });
+      setTimeout(() => setError(null), 3000);
+    }
   }, [isTTSEnabled]); // Dependency on isTTSEnabled
 
   const toggleTTS = () => {
     const newState = !isTTSEnabled;
     setIsTTSEnabled(newState);
+    
     if (!newState && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel(); // Stop speaking if TTS is disabled
       setIsSpeaking(false);
+    } else if (newState && messages.length > 0) {
+      // When enabling TTS, speak the last AI message if available
+      const lastAIMessage = messages.slice().reverse().find(msg => msg.type === 'ai');
+      if (lastAIMessage) {
+        speakText(lastAIMessage.content);
+      }
     }
   };
   
@@ -466,11 +574,13 @@ const ChatInterface = () => {
   // Expose the practice mode function to the window so ChatMessage can access it
   useEffect(() => {
     window.enterPracticeMode = enterPracticeMode;
+    window.speakText = speakText; // Also expose speakText function
     
     return () => {
       delete window.enterPracticeMode;
+      delete window.speakText;
     };
-  }, [enterPracticeMode]); // Add enterPracticeMode to dependency array
+  }, [enterPracticeMode, speakText]); // Add speakText to dependency array
 
   return (
     <div className="chat-container">
@@ -494,16 +604,22 @@ const ChatInterface = () => {
           </span>
         </div>
         <div className="chat-controls">
-           {/* TTS Toggle Button */}
+          {/* TTS Toggle Button */}
           <button
-            className={`tts-toggle-btn ${isTTSEnabled ? 'enabled' : ''}`}
+            className={`tts-toggle-btn ${isTTSEnabled ? 'enabled' : ''} ${isSpeaking ? 'speaking' : ''}`}
             onClick={toggleTTS}
-            aria-label={isTTSEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"}
-            title={isTTSEnabled ? "Disable TTS" : "Enable TTS"}
+            aria-label={
+              isSpeaking ? "Stop speech" : 
+              isTTSEnabled ? "Disable Text-to-Speech" : "Enable Text-to-Speech"
+            }
+            title={
+              isSpeaking ? "Stop speaking" :
+              isTTSEnabled ? "Disable TTS" : "Enable TTS"
+            }
           >
             {/* Simple Speaker Icon */}
             <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-             {!isTTSEnabled && <span className="tts-disabled-line"></span>}
+            {!isTTSEnabled && <span className="tts-disabled-line"></span>}
           </button>
           <select
             value={llmModel}

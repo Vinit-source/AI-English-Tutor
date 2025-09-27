@@ -446,6 +446,16 @@
   background-color: var(--info);
 }
 
+.error-banner.warning {
+  background-color: var(--warning);
+  color: var(--neutral-800);
+}
+
+.error-banner.success {
+  background-color: var(--secondary);
+  color: white;
+}
+
 .close-error {
   background: none;
   border: none;
@@ -491,6 +501,7 @@
   transition: all 0.2s ease;
   position: relative; /* For the disabled line */
   padding: 0; /* Remove default padding */
+  margin-right: var(--space-2);
 }
 
 .tts-toggle-btn:hover {
@@ -501,6 +512,12 @@
 .tts-toggle-btn.enabled {
   /* Optional: style for enabled state, e.g., brighter color */
    color: var(--secondary-light); /* Indicate enabled state */
+}
+
+.tts-toggle-btn.speaking {
+  background-color: rgba(46, 204, 113, 0.2);
+  color: var(--secondary-light);
+  animation: pulse-green 1.5s infinite;
 }
 
 .tts-disabled-line {
@@ -558,6 +575,18 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
   }
 }
 
