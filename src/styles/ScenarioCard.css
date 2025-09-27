@@ -201,3 +201,109 @@
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
+
+/* New status badges for agentic scenarios */
+.status-personalized {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.status-practice {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.status-adaptive {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  color: #16a085;
+  font-weight: 600;
+}
+
+/* Difficulty indicator */
+.scenario-difficulty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-xs);
+}
+
+.difficulty-label {
+  color: var(--neutral-600);
+  font-weight: 500;
+}
+
+.difficulty-value {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.difficulty-value.beginner {
+  background: #d4edda;
+  color: #155724;
+}
+
+.difficulty-value.intermediate {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.difficulty-value.advanced {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Metadata display */
+.scenario-metadata {
+  margin: var(--space-2) 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--neutral-100);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary-color);
+}
+
+.metadata-text {
+  font-size: var(--font-size-xs);
+  color: var(--neutral-700);
+  font-style: italic;
+}
+
+/* Enhanced hover effects for personalized scenarios */
+.scenario-card[data-status="personalized"]:hover,
+.scenario-card[data-status="agentic"]:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.15);
+}
+
+.scenario-card[data-status="practice"]:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(255, 154, 158, 0.15);
+}
+
+.scenario-card[data-status="adaptive"]:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(168, 237, 234, 0.15);
+}
+
+/* Animation for new elements */
+.scenario-difficulty,
+.scenario-metadata {
+  animation: fadeInUp 0.3s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
-import { getScenarioById } from '../data/scenarioLoader';
+import { getScenarioById, loadScenarioPrompt } from '../data/scenarioLoader';
+import { userMemory } from '../utils/userMemory';
 import '../styles/ChatInterface.css';
 
 const ChatInterface = () => {
@@ -21,6 +22,7 @@ const ChatInterface = () => {
     deepseek: false
   });
   const [objectives, setObjectives] = useState([]);
+  const [scenarioData, setScenarioData] = useState(null);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastCorrection, setLastCorrection] = useState('');
   const [error, setError] = useState(null);
@@ -62,11 +64,59 @@ const ChatInterface = () => {
 
   // Load objectives from scenario data
   useEffect(() => {
-    const scenarioData = getScenarioById(scenario);
-    if (scenarioData) {
-      setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
+    const data = getScenarioById(scenario);
+    setScenarioData(data);
+    
+    // First try to get objectives from scenario data
+    if (data && data.objectives) {
+      setObjectives(data.objectives.map(obj => ({ ...obj, completed: false })));
+    } else {
+      // Fallback: try to load objectives from localStorage (set by HomePage)
+      const storedObjectives = localStorage.getItem('currentScenarioObjectives');
+      if (storedObjectives) {
+        try {
+          const parsedObjectives = JSON.parse(storedObjectives);
+          setObjectives(parsedObjectives);
+        } catch (error) {
+          console.error('Error parsing stored objectives:', error);
+          setObjectives([]);
+        }
+      } else {
+        setObjectives([]);
+      }
     }
   }, [scenario]);
+
+  // Record when user completes the chat (navigates away or closes)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      recordScenarioCompletion();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        recordScenarioCompletion();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      recordScenarioCompletion();
+    };
+  }, [objectives]);
+
+  const recordScenarioCompletion = () => {
+    const completedCount = objectives.filter(obj => obj.completed).length;
+    const totalCount = objectives.length;
+    
+    if (totalCount > 0) {
+      userMemory.recordScenarioCompletion(scenario, completedCount, totalCount);
+    }
+  };
 
   const handleCloseObjectives = () => {
     setObjectivesPanelClosing(true);
@@ -240,8 +290,11 @@ const ChatInterface = () => {
       // Update objectives state
       setObjectives(updatedObjectives);
       
-      // Remove thinking indicator and add AI response without objective markers
+      // Record the conversation in user memory
       const cleanResponse = response.replace(regex, "");
+      userMemory.recordConversation(inputValue, cleanResponse, scenario);
+      
+      // Remove thinking indicator and add AI response without objective markers
       setMessages([...newMessages, { type: 'ai', content: cleanResponse }]);
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -453,7 +506,8 @@ const ChatInterface = () => {
       {showObjectives && (
         <div ref={objectivesPanelRef}>
           <ObjectivesPanel 
-            scenario={scenario.replace(/-/g, ' ')}
+            scenario={scenarioData?.title || scenario.replace(/-/g, ' ')}
+            scenarioData={scenarioData}
             objectives={objectives}
             onClose={() => setShowObjectives(false)}
             onObjectiveChange={(id, checked) => {

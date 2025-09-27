@@ -2,16 +2,21 @@ import { useState, useEffect, forwardRef } from 'react';
 import { getScenarioById } from '../data/scenarioLoader';
 import '../styles/ObjectivesPanel.css';
 
-const ObjectivesPanel = forwardRef(({ scenario, objectives, onClose, onObjectiveChange, closing = false }, ref) => {
+const ObjectivesPanel = forwardRef(({ scenario, scenarioData, objectives, onClose, onObjectiveChange, closing = false }, ref) => {
   const [progress, setProgress] = useState(0);
-  const [scenarioData, setScenarioData] = useState(null);
+  const [displayScenarioData, setDisplayScenarioData] = useState(null);
   
   useEffect(() => {
-    // Convert scenario param to scenario ID format (e.g., "over a phone call" -> "over-a-phone-call")
-    const scenarioId = scenario.toLowerCase().replace(/ /g, '-');
-    const data = getScenarioById(scenarioId);
-    setScenarioData(data);
-  }, [scenario]);
+    if (scenarioData) {
+      // Use the passed scenario data directly
+      setDisplayScenarioData(scenarioData);
+    } else {
+      // Fallback: try to load scenario data by converting scenario name to ID
+      const scenarioId = scenario.toLowerCase().replace(/ /g, '-');
+      const data = getScenarioById(scenarioId);
+      setDisplayScenarioData(data);
+    }
+  }, [scenario, scenarioData]);
   
   useEffect(() => {
     const completedCount = objectives.filter(obj => obj.completed).length;
@@ -36,7 +41,7 @@ const ObjectivesPanel = forwardRef(({ scenario, objectives, onClose, onObjective
       <div className="objectives-content">
         <h3 className="section-title scenario">Scenario</h3>
         <p className="scenario-description">
-          {scenarioData ? scenarioData.description : `Practice English conversation in a "${scenario}" scenario.`}
+          {displayScenarioData ? displayScenarioData.description : `Practice English conversation in a "${scenario}" scenario.`}
         </p>
         
         <h3 className="section-title objectives">Learning Objectives</h3>
