@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'; // Import useC
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
-import { getScenarioById } from '../data/scenarioLoader';
+import { getScenarioById, loadScenarioPrompt } from '../data/scenarioLoader';
+import { userMemory } from '../utils/userMemory';
 import '../styles/ChatInterface.css';
 
 // Helper function to extract only the main English text from AI response
@@ -38,6 +39,7 @@ const ChatInterface = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [showObjectives, setShowObjectives] = useState(true);
+  const [objectivesPanelClosing, setObjectivesPanelClosing] = useState(false);
   const [llmModel, setLlmModel] = useState('gemini');
   const [isLoading, setIsLoading] = useState(false);
   const [rateLimitedModels, setRateLimitedModels] = useState({
@@ -47,11 +49,13 @@ const ChatInterface = () => {
     deepseek: false
   });
   const [objectives, setObjectives] = useState([]);
+  const [scenarioData, setScenarioData] = useState(null);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [lastCorrection, setLastCorrection] = useState('');
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
+  const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const canvasRef = useRef(null);
@@ -61,12 +65,19 @@ const ChatInterface = () => {
   const [isSpeaking, setIsSpeaking] = useState(false); // Track if TTS is active
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null); // Ref to keep track of the current utterance
-
+  const objectivesPanelRef = useRef(null);
 
   // Get the stored language preference
   const userLanguage = localStorage.getItem('userLanguage') || 'hindi';
 
-  // Initialize the chat with a welcome message
+  // Focus the input field when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  // Initialize the chat (without welcome message)
   useEffect(() => {
     const welcomeMessage = `Welcome to the "${scenario.replace(/-/g, ' ')}" scenario! How can I help you practice your English today? (${getTranslation('Welcome', userLanguage)})`;
     setMessages([{ 
@@ -74,7 +85,7 @@ const ChatInterface = () => {
       content: welcomeMessage
     }]);
     // Don't auto-speak the welcome message - wait for user interaction
-    
+
     // Reset conversation history and rate limits when scenario changes
     conversationHistory.current = [];
     setRateLimitedModels({
@@ -83,15 +94,97 @@ const ChatInterface = () => {
       gemma: false,
       deepseek: false
     });
+    
+    // Refocus input when scenario changes
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [scenario, userLanguage]);
 
   // Load objectives from scenario data
   useEffect(() => {
-    const scenarioData = getScenarioById(scenario);
-    if (scenarioData) {
-      setObjectives(scenarioData.objectives.map(obj => ({ ...obj, completed: false })));
+    const data = getScenarioById(scenario);
+    setScenarioData(data);
+    
+    // First try to get objectives from scenario data
+    if (data && data.objectives) {
+      setObjectives(data.objectives.map(obj => ({ ...obj, completed: false })));
+    } else {
+      // Fallback: try to load objectives from localStorage (set by HomePage)
+      const storedObjectives = localStorage.getItem('currentScenarioObjectives');
+      if (storedObjectives) {
+        try {
+          const parsedObjectives = JSON.parse(storedObjectives);
+          setObjectives(parsedObjectives);
+        } catch (error) {
+          console.error('Error parsing stored objectives:', error);
+          setObjectives([]);
+        }
+      } else {
+        setObjectives([]);
+      }
     }
   }, [scenario]);
+
+  // Record when user completes the chat (navigates away or closes)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      recordScenarioCompletion();
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        recordScenarioCompletion();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      recordScenarioCompletion();
+    };
+  }, [objectives]);
+
+  const recordScenarioCompletion = () => {
+    const completedCount = objectives.filter(obj => obj.completed).length;
+    const totalCount = objectives.length;
+    
+    if (totalCount > 0) {
+      userMemory.recordScenarioCompletion(scenario, completedCount, totalCount);
+    }
+  };
+
+  const handleCloseObjectives = () => {
+    setObjectivesPanelClosing(true);
+    setTimeout(() => {
+      setObjectivesPanelClosing(false);
+      setShowObjectives(false);
+    }, 300); // Match this with the animation duration
+  };
+
+  // Add click outside handler to close objectives panel
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close panel if it's open and the click is outside both the panel and the toggle button
+      if (showObjectives && 
+          objectivesPanelRef.current && 
+          !objectivesPanelRef.current.contains(event.target) &&
+          !event.target.closest('.objectives-btn')) {
+        setShowObjectives(false);
+      }
+    };
+
+    // Add event listener when component mounts or showObjectives changes
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up event listener when component unmounts
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showObjectives]);
 
   // Simple translation function for common responses
   const getTranslation = (text, language) => {
@@ -396,8 +489,7 @@ const ChatInterface = () => {
     setLastCorrection(correctionText);
     // Focus the input after a short delay to ensure the DOM has updated
     setTimeout(() => {
-      const inputEl = document.querySelector('.chat-input-container input');
-      if (inputEl) inputEl.focus();
+      if (inputRef.current) inputRef.current.focus();
     }, 100);
   }, []); // No dependencies needed if it only uses setters
 
@@ -468,7 +560,10 @@ const ChatInterface = () => {
       
       // Speak the AI response
       speakText(cleanResponse); 
-
+      
+      // Save the conversation in user memory
+      userMemory.recordConversation(inputValue, cleanResponse, scenario);
+      
     } catch (error) {
       console.error('Error getting AI response:', error);
        // Remove thinking indicator before adding error message
@@ -582,6 +677,15 @@ const ChatInterface = () => {
     };
   }, [enterPracticeMode, speakText]); // Add speakText to dependency array
 
+  // Add a handler for when user starts typing
+  const handleInputChange = (e) => {
+    // Close objectives panel when user starts typing
+    if (showObjectives && e.target.value.trim() !== '') {
+      handleCloseObjectives();
+    }
+    setInputValue(e.target.value);
+  };
+
   return (
     <div className="chat-container">
       {error && (
@@ -634,7 +738,7 @@ const ChatInterface = () => {
           </select>
           <button
             className="objectives-btn"
-            onClick={() => setShowObjectives(!showObjectives)}
+            onClick={() => showObjectives ? handleCloseObjectives() : setShowObjectives(true)}
             aria-label="Toggle objectives panel"
           >
             ☰
@@ -668,9 +772,10 @@ const ChatInterface = () => {
             <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
          </button>
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSendMessage(); // Use modified handleSendMessage
             if (e.key === 'Escape') {
@@ -688,6 +793,7 @@ const ChatInterface = () => {
           placeholder={isPracticeMode ? "Practice the corrected phrase..." : (isListening ? "Listening..." : "Type or use mic...")}
           disabled={isLoading || isListening} // Disable input while listening too
           className={isPracticeMode ? 'practice-mode' : ''}
+          autoFocus
         />
         <button 
           onClick={() => handleSendMessage()} // Use modified handleSendMessage
@@ -699,17 +805,20 @@ const ChatInterface = () => {
       </div>
 
       {showObjectives && (
-        <ObjectivesPanel 
-          scenario={scenario.replace(/-/g, ' ')}
-          objectives={objectives}
-          onClose={() => setShowObjectives(false)}
-          onObjectiveChange={(id, checked) => {
-            const updatedObjectives = objectives.map(obj => 
-              obj.id === id ? { ...obj, completed: checked } : obj
-            );
-            setObjectives(updatedObjectives);
-          }}
-        />
+        <div ref={objectivesPanelRef}>
+          <ObjectivesPanel 
+            scenario={scenarioData?.title || scenario.replace(/-/g, ' ')}
+            scenarioData={scenarioData}
+            objectives={objectives}
+            onClose={() => setShowObjectives(false)}
+            onObjectiveChange={(id, checked) => {
+              const updatedObjectives = objectives.map(obj => 
+                obj.id === id ? { ...obj, completed: checked } : obj
+              );
+              setObjectives(updatedObjectives);
+            }}
+          />
+        </div>
       )}
     </div>
   );

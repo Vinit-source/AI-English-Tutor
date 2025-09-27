@@ -2,7 +2,7 @@ export const scenarios = [
   {
     id: 'over-a-phone-call',
     title: 'Over a phone call',
-    description: 'Practice making a phone call to a friend in English',
+    description: 'Ring ring! Master the art of phone conversations with a friend. Navigate small talk, catch up on life updates, and plan future hangouts all while building confidence in spoken English!',
     iconName: 'phone',
     status: 'free',
     objectives: [
@@ -15,7 +15,7 @@ export const scenarios = [
   {
     id: 'restaurant',
     title: 'At a restaurant',
-    description: 'Learn how to order food and have conversations at restaurants',
+    description: 'From "Table for two, please" to the final "Check, please!" Navigate the culinary adventure of dining out. Learn to order like a local and handle restaurant interactions with confidence and proper etiquette.',
     iconName: 'restaurant',
     status: 'free',
     objectives: [
@@ -28,7 +28,7 @@ export const scenarios = [
   {
     id: 'nike-store',
     title: 'At a Nike store',
-    description: 'Practice shopping for shoes and clothes in English',
+    description: 'Step into the world of sportswear shopping! Browse the latest collections, find your perfect fit, score great deals, and walk out with both new kicks and newfound English shopping vocabulary.',
     iconName: 'shopping',
     status: 'free',
     objectives: [
@@ -41,7 +41,7 @@ export const scenarios = [
   {
     id: 'coffee-shop',
     title: 'At a coffee shop',
-    description: 'Learn how to order coffee and chat in a coffee shop',
+    description: 'Espresso yourself! Navigate the buzzing atmosphere of a café, decode the coffee lingo, customize your perfect brew, and engage in the time-honored tradition of café conversation.',
     iconName: 'coffee',
     status: 'free',
     objectives: [
@@ -54,7 +54,7 @@ export const scenarios = [
   {
     id: 'first-day-class',
     title: 'First day of class',
-    description: 'Practice introducing yourself and meeting classmates',
+    description: 'New classroom, new faces! Break the ice, share your story, and make meaningful connections on your academic journey. Turn first-day jitters into confident classroom communication.',
     iconName: 'class',
     status: 'free',
     objectives: [
@@ -67,7 +67,7 @@ export const scenarios = [
   {
     id: 'birthday-celebration',
     title: 'Birthday celebration',
-    description: 'Learn how to celebrate a birthday with friends at a restaurant',
+    description: 'Cake, candles, and celebrations! Learn the perfect birthday wishes, navigate gift-giving customs, plan the perfect party, and create memorable moments in this joyful social scenario.',
     iconName: 'birthday',
     status: 'free',
     objectives: [

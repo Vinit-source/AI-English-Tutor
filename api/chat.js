@@ -17,17 +17,119 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // Load system prompt from file
 async function loadSystemPrompt(scenario, language = 'hindi') {
   try {
-    const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
-    let promptContent = await fs.readFile(promptPath, 'utf8');
+    let promptContent;
     
-    // Add language information to prompt
-    promptContent += `\n\nIMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.`;
+    // Check if it's a dynamic scenario
+    if (scenario.startsWith('dynamic-') || scenario.startsWith('agentic-') || 
+        scenario.startsWith('practice-') || scenario.startsWith('adaptive-')) {
+      // Generate dynamic prompt
+      promptContent = generateDynamicPrompt(scenario, language);
+    } else {
+      // Load static prompt
+      const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
+      promptContent = await fs.readFile(promptPath, 'utf8');
+    }
+    
+    // Add language information and structured response format
+    promptContent += `
+    
+IMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.
+
+CORRECTION FORMAT:
+When correcting the user's English, ALWAYS use the following format:
+1. Acknowledge their meaning
+2. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
+3. Explanation if needed
+
+Example of correction:
+"I understand you want to order coffee. You could say: "I would like to order a large coffee, please." This is more natural phrasing."
+
+AGENTIC ADAPTATION:
+- Pay attention to the user's vocabulary level and adjust your responses accordingly
+- If the user seems to struggle, provide more support and simpler alternatives
+- If the user is doing well, gradually introduce more complex vocabulary and structures
+- Remember context from the conversation to provide relevant, personalized responses
+
+This structured format is essential for the application to detect corrections properly.`;
     
     return promptContent;
   } catch (error) {
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
-    return null;
+    return generateFallbackPrompt(scenario, language);
   }
+}
+
+function generateDynamicPrompt(scenario, language) {
+  const scenarioType = scenario.split('-')[0]; // dynamic, agentic, practice, adaptive
+  const scenarioDetails = scenario.split('-').slice(1).join(' ');
+  
+  let basePrompt = `You are a friendly English tutor conducting a personalized learning scenario with an Indian student who is practicing English conversation. Your role is to guide them through this interactive experience.
+
+SCENARIO TYPE: ${scenarioType.toUpperCase()}
+This is a dynamically generated scenario tailored to the user's learning patterns and interests.
+
+KEY CONVERSATION OBJECTIVES:
+1. [1] Engage in conversation appropriate to your skill level
+2. [2] Express your thoughts and opinions clearly
+3. [3] Ask relevant questions to keep the conversation flowing
+4. [4] Practice vocabulary and grammar naturally in context
+
+INTERACTION GUIDELINES:
+- Be encouraging and adaptive to the user's level
+- Guide the conversation naturally through the learning objectives
+- Provide opportunities for the user to practice each objective
+- Correct any grammatical mistakes gently
+- Use vocabulary appropriate for the student's demonstrated level
+- Be patient and supportive
+
+FEEDBACK PROTOCOL:
+1. When the student correctly fulfills an objective, add the corresponding number in brackets (e.g., [1]) at the start of your response
+2. For grammar or phrasing mistakes:
+   a. Acknowledge their meaning
+   b. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
+   c. Explanation if needed
+
+Example of correction:
+"I understand you want to talk about that topic. You could say: "I'd like to discuss this further." This is a more natural way to express interest in continuing the conversation."
+
+AGENTIC BEHAVIOR:
+- Adapt your teaching style based on the user's responses
+- If the user makes frequent mistakes, slow down and provide more support
+- If the user is confident, challenge them with more complex topics
+- Reference topics the user has shown interest in when appropriate
+- Encourage the user to explore new vocabulary related to their interests`;
+
+  if (scenarioType === 'practice') {
+    basePrompt += `
+
+PRACTICE FOCUS:
+This is a remedial practice session. The user has struggled with similar scenarios before.
+- Be extra patient and encouraging
+- Break down complex concepts into smaller parts
+- Provide multiple examples
+- Celebrate small victories`;
+  }
+
+  basePrompt += `
+
+FORMAT:
+Always provide your English response first, followed by its translation in parentheses.
+Example: "Welcome to this scenario! How are you feeling today? (Hindi: इस परिदृश्य में आपका स्वागत है! आज आप कैसा महसूस कर रहे हैं?)"`;
+
+  return basePrompt;
+}
+
+function generateFallbackPrompt(scenario, language) {
+  return `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
+
+Please:
+- Be encouraging and supportive
+- Help them practice natural English conversation
+- Correct mistakes gently using the correction format
+- Adapt to their skill level
+- Ask engaging questions to keep the conversation flowing
+
+Always provide your English response first, followed by its translation in ${language} in parentheses.`;
 }
 
 // Validate required environment variables
