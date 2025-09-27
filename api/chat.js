@@ -186,6 +186,117 @@ Example: "Welcome to this scenario! How are you feeling today? (Hindi: इस �
   return basePrompt;
 }
 
+// Parse learned content from text responses when structured JSON is not available
+function parseLearnedContentFromText(responseText, userMessage) {
+  const learnedWords = [];
+  const learnedPhrases = [];
+  
+  // Extract words and phrases that indicate the user is learning/demonstrating mastery
+  const userWords = extractWordsFromMessage(userMessage);
+  const advancedWords = identifyAdvancedVocabulary(userWords, userMessage);
+  const phrases = identifyPhrasesAndIdioms(userMessage);
+  
+  // Add advanced vocabulary as learned words (conservative approach)
+  advancedWords.forEach(word => {
+    if (word.length > 3 && !isCommonWord(word)) {
+      learnedWords.push({
+        english: word,
+        translation: getBasicTranslation(word),
+        confidence: 0.75 // Conservative confidence for text parsing
+      });
+    }
+  });
+  
+  // Add phrases if they seem sophisticated
+  phrases.forEach(phrase => {
+    if (phrase.length > 10) { // Only longer, more complex phrases
+      learnedPhrases.push({
+        english: phrase,
+        translation: getBasicTranslation(phrase),
+        confidence: 0.75,
+        type: identifyPhraseType(phrase)
+      });
+    }
+  });
+  
+  return {
+    words: learnedWords.slice(0, 3), // Limit to 3 words to avoid spam
+    phrases: learnedPhrases.slice(0, 2) // Limit to 2 phrases
+  };
+}
+
+function extractWordsFromMessage(message) {
+  // Extract meaningful words (3+ characters, not common words)
+  return message.toLowerCase()
+    .match(/\b[a-z]{3,}\b/g) || [];
+}
+
+function identifyAdvancedVocabulary(words, context) {
+  // List of advanced/intermediate vocabulary that might indicate learning
+  const advancedWords = [
+    'wonderful', 'excellent', 'fantastic', 'amazing', 'incredible', 'magnificent',
+    'appreciate', 'grateful', 'delighted', 'pleased', 'satisfied', 'content',
+    'understand', 'realize', 'recognize', 'acknowledge', 'comprehend',
+    'opportunity', 'experience', 'situation', 'circumstances', 'environment',
+    'definitely', 'absolutely', 'certainly', 'obviously', 'particularly',
+    'especially', 'specifically', 'generally', 'typically', 'frequently',
+    'interesting', 'fascinating', 'enjoyable', 'comfortable', 'convenient',
+    'necessary', 'important', 'significant', 'relevant', 'appropriate'
+  ];
+  
+  return words.filter(word => advancedWords.includes(word));
+}
+
+function identifyPhrasesAndIdioms(message) {
+  const phrases = [];
+  
+  // Common phrase patterns that indicate learning
+  const phrasePatterns = [
+    /\b(having a [a-z]+ time)\b/gi,
+    /\b(how are you [a-z]+)\b/gi,
+    /\b(i hope [a-z\s]+)\b/gi,
+    /\b(would like to [a-z\s]+)\b/gi,
+    /\b(looking forward to [a-z\s]+)\b/gi,
+    /\b(it would be [a-z\s]+)\b/gi,
+    /\b(in my opinion [a-z\s]*)\b/gi,
+    /\b(as far as i [a-z\s]+)\b/gi
+  ];
+  
+  phrasePatterns.forEach(pattern => {
+    const matches = message.match(pattern);
+    if (matches) {
+      phrases.push(...matches);
+    }
+  });
+  
+  return phrases;
+}
+
+function identifyPhraseType(phrase) {
+  if (phrase.includes('having a') || phrase.includes('looking forward')) {
+    return 'expression';
+  }
+  if (phrase.includes('would like') || phrase.includes('it would be')) {
+    return 'pattern';
+  }
+  return 'expression';
+}
+
+function isCommonWord(word) {
+  const commonWords = [
+    'the', 'and', 'you', 'are', 'for', 'with', 'this', 'that', 'have', 'was',
+    'not', 'but', 'can', 'had', 'her', 'him', 'his', 'how', 'its', 'our',
+    'out', 'she', 'they', 'were', 'what', 'when', 'who', 'will', 'your'
+  ];
+  return commonWords.includes(word.toLowerCase());
+}
+
+function getBasicTranslation(text) {
+  // This is a basic fallback - in a real implementation, you'd use a translation service
+  // For now, return a placeholder
+  return `[Translation needed for: ${text}]`;
+}
+
 function generateFallbackPrompt(scenario, language) {
   return `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
 
@@ -560,7 +671,34 @@ async function callMistralAPI(apiKey, message, systemPrompt, conversationHistory
     throw new Error('Invalid response format from Mistral API');
   }
 
-  return data.choices[0].message.content;
+  const responseText = data.choices[0].message.content;
+  
+  // Try to parse JSON response first
+  try {
+    const parsedResponse = JSON.parse(responseText);
+    
+    if (parsedResponse.englishResponse && parsedResponse.localTranslation) {
+      // Return structured response
+      return {
+        reply: `${parsedResponse.englishResponse} (${parsedResponse.localTranslation})`,
+        learnedWords: parsedResponse.learnedWords || [],
+        learnedPhrases: parsedResponse.learnedPhrases || [],
+        structured: true
+      };
+    }
+  } catch (parseError) {
+    // Continue to fallback parsing
+  }
+  
+  // Fallback: parse learned content from text response
+  const learnedContent = parseLearnedContentFromText(responseText, message);
+  
+  return {
+    reply: responseText,
+    learnedWords: learnedContent.words,
+    learnedPhrases: learnedContent.phrases,
+    structured: false
+  };
 }
 
 async function callOpenRouterAPI(apiKey, modelId, message, systemPrompt, conversationHistory) {
@@ -616,7 +754,34 @@ async function callOpenRouterAPI(apiKey, modelId, message, systemPrompt, convers
       throw new Error('Invalid response format from OpenRouter API');
     }
 
-    return data.choices[0].message.content;
+    const responseText = data.choices[0].message.content;
+    
+    // Try to parse JSON response first
+    try {
+      const parsedResponse = JSON.parse(responseText);
+      
+      if (parsedResponse.englishResponse && parsedResponse.localTranslation) {
+        // Return structured response
+        return {
+          reply: `${parsedResponse.englishResponse} (${parsedResponse.localTranslation})`,
+          learnedWords: parsedResponse.learnedWords || [],
+          learnedPhrases: parsedResponse.learnedPhrases || [],
+          structured: true
+        };
+      }
+    } catch (parseError) {
+      // Continue to fallback parsing
+    }
+    
+    // Fallback: parse learned content from text response
+    const learnedContent = parseLearnedContentFromText(responseText, message);
+    
+    return {
+      reply: responseText,
+      learnedWords: learnedContent.words,
+      learnedPhrases: learnedContent.phrases,
+      structured: false
+    };
   } catch (error) {
     console.error('OpenRouter API error:', error);
     if (error.message.includes('429')) {
