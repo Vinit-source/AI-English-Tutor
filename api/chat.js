@@ -148,9 +148,10 @@ INTERACTION GUIDELINES:
 - Correct any grammatical mistakes gently
 - Use vocabulary appropriate for the student's demonstrated level
 - Be patient and supportive
+- Drive the conversation to an end when all objectives are accomplished.
 
 FEEDBACK PROTOCOL:
-1. When the student correctly fulfills an objective, add the corresponding number in brackets (e.g., [1]) at the start of your response
+1. When the student correctly fulfills an objective - by correcting completing the objective IN THEIR OWN MESSAGE (role:user), add the corresponding number in brackets (e.g., [1]) at the start of your response
 2. For grammar or phrasing mistakes:
    a. Acknowledge their meaning
    b. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
@@ -180,8 +181,25 @@ This is a remedial practice session. The user has struggled with similar scenari
   basePrompt += `
 
 FORMAT:
-Always provide your English response first, followed by its translation in parentheses.
-Example: "Welcome to this scenario! How are you feeling today? (Hindi: इस परिदृश्य में आपका स्वागत है! आज आप कैसा महसूस कर रहे हैं?)"`;
+{
+  "englishResponse": "Great! Yes, let's explore this topic into detail. Suggest a sub-topic to start with.",
+  "localTranslation": "बढ़िया! हाँ, आइए इस विषय पर विस्तार से चर्चा करें। शुरुआत के लिए कोई उप-विषय सुझाएँ।", // Assuming local language was selected as Hindi
+  "learnedWords": [ // learned words from the user's previous message
+    {
+      "english": "explore",
+      "translation": "अन्वेषण करना", 
+      "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [ // learned phrases from the user's previous message
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
+    }
+  ]
+}`;
 
   return basePrompt;
 }
@@ -189,14 +207,47 @@ Example: "Welcome to this scenario! How are you feeling today? (Hindi: इस �
 function generateFallbackPrompt(scenario, language) {
   return `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
 
-Please:
+KEY CONVERSATION OBJECTIVES:
+1. [1] Engage in conversation appropriate to the scenario
+2. [2] Express thoughts and opinions clearly
+3. [3] Ask relevant questions to keep the conversation flowing
+4. [4] Practice vocabulary and grammar naturally in context
+
+INTERACTION GUIDELINES:
 - Be encouraging and supportive
 - Help them practice natural English conversation
 - Correct mistakes gently using the correction format
 - Adapt to their skill level
 - Ask engaging questions to keep the conversation flowing
+- Drive the conversation to an end when all objectives are accomplished.
 
-Always provide your English response first, followed by its translation in ${language} in parentheses.`;
+FEEDBACK PROTOCOL:
+1. When the student correctly fulfills an objective - by correcting completing the objective IN THEIR OWN MESSAGE (role:user), add the corresponding number in brackets (e.g., [1]) at the start of your response
+2. For grammar or phrasing mistakes:
+   a. Acknowledge their meaning
+   b. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
+   c. Explanation if needed
+
+FORMAT:
+{
+  "englishResponse": "Great! Yes, let's explore this topic into detail. Suggest a sub-topic to start with.",
+  "localTranslation": "बढ़िया! हाँ, आइए इस विषय पर विस्तार से चर्चा करें। शुरुआत के लिए कोई उप-विषय सुझाएँ।", // Assuming local language was selected as Hindi
+  "learnedWords": [ // learned words from the user's previous message
+    {
+      "english": "explore",
+      "translation": "अन्वेषण करना", 
+      "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [ // learned phrases from the user's previous message
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
+    }
+  ]
+}`;
 }
 
 // Validate required environment variables
