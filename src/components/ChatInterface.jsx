@@ -150,7 +150,26 @@ const ChatInterface = () => {
   // Generate meaningful scenario title
   const getScenarioTitle = () => {
     if (scenarioData?.title) {
+      // For adaptive scenarios, extract the topic and format it properly
+      if (scenarioData.title.includes('- Adaptive')) {
+        const topic = scenarioData.title.replace(' - Adaptive', '');
+        return `Adaptive ${topic} Session`;
+      }
       return scenarioData.title;
+    }
+    
+    // Try to get scenario title from user memory if scenarioData is not available
+    const memory = userMemory.getMemory();
+    if (memory && memory.scenarioPreferences && memory.scenarioPreferences.favoriteScenarios) {
+      const scenarioInfo = memory.scenarioPreferences.favoriteScenarios[scenario];
+      if (scenarioInfo && scenarioInfo.title) {
+        // For adaptive scenarios from memory, extract the topic and format it properly
+        if (scenarioInfo.title.includes('- Adaptive')) {
+          const topic = scenarioInfo.title.replace(' - Adaptive', '');
+          return `Adaptive ${topic} Session`;
+        }
+        return scenarioInfo.title;
+      }
     }
     
     // Handle different scenario types with meaningful names

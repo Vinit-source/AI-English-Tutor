@@ -14,11 +14,12 @@
 .header-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 20px;
   margin-bottom: 30px;
 }
 
-.back-button {
+.back-button, .refresh-button {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
@@ -29,9 +30,10 @@
   font-weight: 500;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
 }
 
-.back-button:hover {
+.back-button:hover, .refresh-button:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
@@ -41,6 +43,8 @@
   font-weight: 700;
   margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  flex: 1;
+  text-align: center;
 }
 
 .stats-grid {

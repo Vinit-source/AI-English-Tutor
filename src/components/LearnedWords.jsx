@@ -12,6 +12,25 @@ const LearnedWords = () => {
 
   useEffect(() => {
     loadLearnedWords();
+    
+    // Listen for storage changes to reload data when learned words are updated
+    const handleStorageChange = (e) => {
+      if (e.key === 'aiTutorUserMemory') {
+        loadLearnedWords();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also set up an interval to periodically check for updates (fallback)
+    const interval = setInterval(() => {
+      loadLearnedWords();
+    }, 5000); // Check every 5 seconds
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadLearnedWords = () => {
@@ -89,6 +108,14 @@ const LearnedWords = () => {
             ← Back
           </button>
           <h1 className="page-title">My Learned Words</h1>
+          <button 
+            className="refresh-button" 
+            onClick={loadLearnedWords}
+            aria-label="Refresh learned words"
+            title="Refresh learned words"
+          >
+            🔄 Refresh
+          </button>
         </div>
         
         {stats && (
