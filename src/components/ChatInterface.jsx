@@ -653,16 +653,25 @@ const ChatInterface = () => {
         ? 'http://localhost:3000/api/chat'
         : '/api/chat';
 
+      // Include objectives for dynamic scenarios
+      const requestBody = {
+        message,
+        language,
+        model,
+        scenario,
+        conversationHistory: conversationHistory.current
+      };
+
+      // Add objectives for dynamic/adaptive/agentic/practice scenarios
+      if (scenario.startsWith('dynamic-') || scenario.startsWith('agentic-') || 
+          scenario.startsWith('practice-') || scenario.startsWith('adaptive-')) {
+        requestBody.objectives = objectives;
+      }
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          language,
-          model,
-          scenario,
-          conversationHistory: conversationHistory.current
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

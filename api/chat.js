@@ -15,15 +15,15 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Load system prompt from file
-async function loadSystemPrompt(scenario, language = 'hindi') {
+async function loadSystemPrompt(scenario, language = 'hindi', objectives = null) {
   try {
     let promptContent;
     
     // Check if it's a dynamic scenario
     if (scenario.startsWith('dynamic-') || scenario.startsWith('agentic-') || 
         scenario.startsWith('practice-') || scenario.startsWith('adaptive-')) {
-      // Generate dynamic prompt
-      promptContent = generateDynamicPrompt(scenario, language);
+      // Generate dynamic prompt with scenario-specific objectives
+      promptContent = generateDynamicPrompt(scenario, language, objectives);
     } else {
       // Load static prompt
       const promptPath = path.join(__dirname, '..', 'src', 'prompts', `${scenario}.txt`);
@@ -122,11 +122,11 @@ AGENTIC ADAPTATION:
     return promptContent;
   } catch (error) {
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
-    return generateFallbackPrompt(scenario, language);
+    return generateFallbackPrompt(scenario, language, objectives);
   }
 }
 
-function generateDynamicPrompt(scenario, language) {
+function generateDynamicPrompt(scenario, language, objectives = null) {
   const scenarioType = scenario.split('-')[0]; // dynamic, agentic, practice, adaptive
   const scenarioDetails = scenario.split('-').slice(1).join(' ');
   
@@ -135,11 +135,23 @@ function generateDynamicPrompt(scenario, language) {
 SCENARIO TYPE: ${scenarioType.toUpperCase()}
 This is a dynamically generated scenario tailored to the user's learning patterns and interests.
 
-KEY CONVERSATION OBJECTIVES:
+KEY CONVERSATION OBJECTIVES:`;
+
+  // Use scenario-specific objectives if provided, otherwise use generic ones
+  if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+    objectives.forEach((objective, index) => {
+      basePrompt += `\n${index + 1}. [${index + 1}] ${objective.text}`;
+    });
+  } else {
+    // Fallback to generic objectives
+    basePrompt += `
 1. [1] Engage in conversation appropriate to your skill level
 2. [2] Express your thoughts and opinions clearly
 3. [3] Ask relevant questions to keep the conversation flowing
-4. [4] Practice vocabulary and grammar naturally in context
+4. [4] Practice vocabulary and grammar naturally in context`;
+  }
+
+  basePrompt += `
 
 INTERACTION GUIDELINES:
 - Be encouraging and adaptive to the user's level
@@ -204,14 +216,26 @@ FORMAT:
   return basePrompt;
 }
 
-function generateFallbackPrompt(scenario, language) {
-  return `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
+function generateFallbackPrompt(scenario, language, objectives = null) {
+  let prompt = `You are a friendly English tutor helping a student practice English conversation in scenario: ${scenario}.
 
-KEY CONVERSATION OBJECTIVES:
+KEY CONVERSATION OBJECTIVES:`;
+
+  // Use scenario-specific objectives if provided, otherwise use generic ones
+  if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+    objectives.forEach((objective, index) => {
+      prompt += `\n${index + 1}. [${index + 1}] ${objective.text}`;
+    });
+  } else {
+    // Fallback to generic objectives
+    prompt += `
 1. [1] Engage in conversation appropriate to the scenario
 2. [2] Express thoughts and opinions clearly
 3. [3] Ask relevant questions to keep the conversation flowing
-4. [4] Practice vocabulary and grammar naturally in context
+4. [4] Practice vocabulary and grammar naturally in context`;
+  }
+
+  prompt += `
 
 INTERACTION GUIDELINES:
 - Be encouraging and supportive
@@ -248,6 +272,8 @@ FORMAT:
     }
   ]
 }`;
+
+  return prompt;
 }
 
 // Validate required environment variables
@@ -306,7 +332,7 @@ async function chatHandler(req, res) {
     }
 
     // Request body validation
-    const { message, language, model, scenario, conversationHistory } = req.body;
+    const { message, language, model, scenario, conversationHistory, objectives } = req.body;
     
     if (!message || !language || !model || !scenario) {
       return res.status(400).json({ 
@@ -315,8 +341,8 @@ async function chatHandler(req, res) {
       });
     }
 
-    // Create system prompt
-    const systemPrompt = await loadSystemPrompt(scenario, language);
+    // Create system prompt with scenario-specific objectives if available
+    const systemPrompt = await loadSystemPrompt(scenario, language, objectives);
     if (!systemPrompt) {
       return res.status(500).json({ 
         error: 'Server error',
