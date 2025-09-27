@@ -118,17 +118,39 @@ const ChatMessage = ({ type, content, isPractice = false }) => {
           <div className="english-message">
             {englishMain}
 
-            {/* Translation toggle button */}
-            {translatedText && (
+            <div className="message-actions">
+              {/* Translation toggle button */}
+              {translatedText && (
+                <button
+                  className="hint-button"
+                  onClick={() => setShowTranslation(!showTranslation)}
+                  aria-label={showTranslation ? "Hide translation" : "Show translation"}
+                  title={showTranslation ? "Hide translation" : "Show translation"}
+                >
+                  💡
+                </button>
+              )}
+              
+              {/* Speak button */}
               <button
-                className="hint-button"
-                onClick={() => setShowTranslation(!showTranslation)}
-                aria-label={showTranslation ? "Hide translation" : "Show translation"}
-                title={showTranslation ? "Hide translation" : "Show translation"}
+                className="speak-button"
+                onClick={() => {
+                  if (window.speechSynthesis && typeof window.speakText === 'function') {
+                    window.speakText(englishMain);
+                  } else if (window.speechSynthesis) {
+                    // Fallback if speakText is not available
+                    const utterance = new SpeechSynthesisUtterance(englishMain);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                  }
+                }}
+                aria-label="Speak this message"
+                title="Speak this message"
               >
-                💡
+                🔊
               </button>
-            )}
+            </div>
           </div>
 
           {/* Correction section */}
