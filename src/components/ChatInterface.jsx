@@ -186,7 +186,54 @@ const ChatInterface = () => {
     };
   }, [showObjectives]);
 
-  // Simple translation function for common responses
+  // Generate meaningful scenario title
+  const getScenarioTitle = () => {
+    if (scenarioData?.title) {
+      // For adaptive scenarios, extract the topic and format it properly
+      if (scenarioData.title.includes('- Adaptive')) {
+        const topic = scenarioData.title.replace(' - Adaptive', '');
+        return `Adaptive ${topic} Session`;
+      }
+      return scenarioData.title;
+    }
+    
+    // Try to get scenario title from user memory if scenarioData is not available
+    const memory = userMemory.getMemory();
+    if (memory && memory.scenarioPreferences && memory.scenarioPreferences.favoriteScenarios) {
+      const scenarioInfo = memory.scenarioPreferences.favoriteScenarios[scenario];
+      if (scenarioInfo && scenarioInfo.title) {
+        // For adaptive scenarios from memory, extract the topic and format it properly
+        if (scenarioInfo.title.includes('- Adaptive')) {
+          const topic = scenarioInfo.title.replace(' - Adaptive', '');
+          return `Adaptive ${topic} Session`;
+        }
+        return scenarioInfo.title;
+      }
+    }
+    
+    // Handle different scenario types with meaningful names
+    const scenarioId = scenario;
+    
+    if (scenarioId.startsWith('dynamic-') || scenarioId.startsWith('agentic-')) {
+      // Extract topic from dynamic scenario ID
+      const parts = scenarioId.split('-');
+      if (parts.length >= 2) {
+        const topic = parts.slice(1, -1).join(' '); // Remove 'dynamic'/'agentic' and timestamp
+        return `Personalized ${topic.charAt(0).toUpperCase() + topic.slice(1)} Conversation`;
+      }
+    }
+    
+    if (scenarioId.startsWith('practice-')) {
+      return `Practice Session: ${scenarioId.replace('practice-', '').replace(/-/g, ' ')}`;
+    }
+    
+    if (scenarioId.startsWith('adaptive-')) {
+      return `Adaptive Learning Session`;
+    }
+    
+    // Default formatting for regular scenarios
+    return scenarioId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
   const getTranslation = (text, language) => {
     const translations = {
       hindi: {
@@ -532,12 +579,25 @@ const ChatInterface = () => {
       const modelToUse = findAvailableModel();
       setMessages([...newMessages, { type: 'thinking' }]);
       
+      // Send to API with context about correction practice
+      let response;
       let responseText;
+      let aiResponseData = null;
+      
       if (isCorrectingPractice) {
         responseText = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
+        response = responseText;
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
-        responseText = await getAIResponse(currentMessage, userLanguage, modelToUse, scenario); // Use currentMessage
+        // Normal API call for regular conversation
+        aiResponseData = await getAIResponse(currentMessage, userLanguage, modelToUse, scenario);
+        response = aiResponseData.reply || aiResponseData;
+        responseText = response;
+        
+        // Handle learned words if available
+        if (aiResponseData.learnedWords && aiResponseData.learnedWords.length > 0) {
+          // Record learned words in user memory will be handled in recordConversation
+        }
       }
       
       const updatedObjectives = [...objectives];
@@ -554,16 +614,21 @@ const ChatInterface = () => {
       
       setObjectives(updatedObjectives);
       
-      const cleanResponse = responseText.replace(regex, "");
+      // Record the conversation in user memory
+      const cleanResponse = response.replace(regex, "");
+      
       // Remove thinking indicator before adding AI response
       setMessages(prevMessages => [...prevMessages.filter(m => m.type !== 'thinking'), { type: 'ai', content: cleanResponse }]);
       
       // Speak the AI response
       speakText(cleanResponse); 
       
-      // Save the conversation in user memory
-      userMemory.recordConversation(inputValue, cleanResponse, scenario);
+      const learnedWords = (typeof aiResponseData === 'object' && aiResponseData.learnedWords) ? aiResponseData.learnedWords : [];
+      const learnedPhrases = (typeof aiResponseData === 'object' && aiResponseData.learnedPhrases) ? aiResponseData.learnedPhrases : [];
       
+      // Save the conversation in user memory with learned words and phrases
+      userMemory.recordConversation(currentMessage, cleanResponse, scenario, learnedWords, learnedPhrases);
+
     } catch (error) {
       console.error('Error getting AI response:', error);
        // Remove thinking indicator before adding error message
@@ -625,7 +690,7 @@ const ChatInterface = () => {
         content: data.reply
       });
       
-      return data.reply;
+      return data; // Return full data object instead of just reply
     } catch (error) {
       console.error('Error in AI response:', error);
       
@@ -703,7 +768,7 @@ const ChatInterface = () => {
             title="Back to home page"
           ></button>
           <span className="chat-title">
-            {scenario.replace(/-/g, ' ')}
+            {getScenarioTitle()}
             <span className="language-indicator">{userLanguage}</span>
           </span>
         </div>

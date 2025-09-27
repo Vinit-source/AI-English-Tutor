@@ -8,6 +8,7 @@ import {
 import './App.css'
 import HomePage from './components/HomePage'
 import ChatInterface from './components/ChatInterface'
+import LearnedWords from './components/LearnedWords'
 
 function App() {
   // Create a router with the future flags enabled to prevent warnings
@@ -16,6 +17,7 @@ function App() {
       <>
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:scenario" element={<ChatInterface />} />
+        <Route path="/learned-words" element={<LearnedWords />} />
       </>
     ),
     {

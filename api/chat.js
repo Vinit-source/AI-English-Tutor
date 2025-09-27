@@ -33,24 +33,91 @@ async function loadSystemPrompt(scenario, language = 'hindi') {
     // Add language information and structured response format
     promptContent += `
     
-IMPORTANT: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.
+IMPORTANT INSTRUCTIONS:
+
+LANGUAGE: Please provide translations in ${language.toUpperCase()}. The user's preferred language is ${language}.
+
+LEARNED WORDS DETECTION:
+Only mark a word as "learned" if you are truly convinced the user has mastered it based on:
+- Correct usage in context (multiple times)
+- Proper grammar and natural phrasing
+- Confident usage without hesitation
+- Understanding of nuances and appropriate situations for use
+
+Mark words as learned ONLY when confidence level is >= 0.8 (very confident).
+Examples of when to mark as learned:
+- User uses advanced vocabulary correctly and naturally
+- User demonstrates understanding of word meanings through context
+- User uses words appropriately in different sentence structures
+- User shows they understand subtle differences between similar words
+
+Do NOT mark as learned if:
+- User makes basic mistakes with the word
+- Usage seems forced or unnatural
+- User appears to be guessing the meaning
+- Word is used only once or in a simple context
+
+LEARNED PHRASES DETECTION:
+Similarly to words, mark phrases as "learned" only when you are convinced the user has mastered them:
+- Natural use of idiomatic expressions
+- Correct usage of phrasal verbs
+- Proper sentence structures and patterns
+- Complex grammatical constructions used correctly
+
+Mark phrases as learned ONLY when confidence level is >= 0.8 (very confident).
+
+RESPONSE FORMAT:
+You MUST respond with valid JSON in the following structure:
+{
+  "englishResponse": "Your main English response here",
+  "localTranslation": "Translation in ${language} here", 
+  "learnedWords": [
+    {
+      "english": "word",
+      "translation": "translation in ${language}",
+      "confidence": 0.85
+    }
+  ],
+  "learnedPhrases": [
+    {
+      "english": "phrase or idiom",
+      "translation": "translation in ${language}",
+      "confidence": 0.85,
+      "type": "idiom" // or "phrasal_verb", "expression", "pattern"
+    }
+  ]
+}
 
 CORRECTION FORMAT:
-When correcting the user's English, ALWAYS use the following format:
-1. Acknowledge their meaning
-2. Use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes
-3. Explanation if needed
+When correcting the user's English, use the exact phrase "You could say: <<CORRECTION>>" where <<CORRECTION>> is your suggested correction in double quotes.
 
-Example of correction:
-"I understand you want to order coffee. You could say: "I would like to order a large coffee, please." This is more natural phrasing."
+Example JSON response:
+{
+  "englishResponse": "Great job using that vocabulary! You could say: \\"I would like to explore this topic further.\\" This sounds more natural.",
+  "localTranslation": "${language.toUpperCase()}: बहुत बढ़िया! आप कह सकते हैं...",
+  "learnedWords": [
+    {
+      "english": "explore",
+      "translation": "अन्वेषण करना",
+      "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
+    }
+  ]
+}
 
 AGENTIC ADAPTATION:
 - Pay attention to the user's vocabulary level and adjust your responses accordingly
 - If the user seems to struggle, provide more support and simpler alternatives
 - If the user is doing well, gradually introduce more complex vocabulary and structures
-- Remember context from the conversation to provide relevant, personalized responses
-
-This structured format is essential for the application to detect corrections properly.`;
+- Remember context from the conversation to provide relevant, personalized responses`;
+    
     
     return promptContent;
   } catch (error) {
@@ -245,8 +312,21 @@ async function chatHandler(req, res) {
       }
     }
 
+    // Ensure response has consistent structure
+    if (typeof response === 'string') {
+      response = {
+        reply: response,
+        learnedWords: [],
+        learnedPhrases: [],
+        structured: false
+      };
+    }
+
     return res.status(200).json({ 
-      reply: response,
+      reply: response.reply || response, // Handle both structured and plain responses
+      learnedWords: response.learnedWords || [],
+      learnedPhrases: response.learnedPhrases || [],
+      structured: response.structured || false,
       usedFallback: usedFallback,
       fallbackModel: usedFallback ? 'gemini' : null
     });
@@ -320,7 +400,75 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 1024
+        maxOutputTokens: 1024,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            englishResponse: {
+              type: "string",
+              description: "The main English response to the user"
+            },
+            localTranslation: {
+              type: "string",
+              description: "Translation of the English response in the user's local language"
+            },
+            learnedWords: {
+              type: "array",
+              description: "Array of words the user has demonstrated mastery of in this conversation",
+              items: {
+                type: "object",
+                properties: {
+                  english: {
+                    type: "string",
+                    description: "The English word the user has learned"
+                  },
+                  translation: {
+                    type: "string",
+                    description: "The translation of the word in the user's local language"
+                  },
+                  confidence: {
+                    type: "number",
+                    description: "Confidence level (0.0-1.0) that the user has truly learned this word",
+                    minimum: 0.0,
+                    maximum: 1.0
+                  }
+                },
+                required: ["english", "translation", "confidence"]
+              }
+            },
+            learnedPhrases: {
+              type: "array",
+              description: "Array of phrases, idioms, or expressions the user has demonstrated mastery of",
+              items: {
+                type: "object",
+                properties: {
+                  english: {
+                    type: "string",
+                    description: "The English phrase or expression the user has learned"
+                  },
+                  translation: {
+                    type: "string",
+                    description: "The translation of the phrase in the user's local language"
+                  },
+                  confidence: {
+                    type: "number",
+                    description: "Confidence level (0.0-1.0) that the user has truly learned this phrase",
+                    minimum: 0.0,
+                    maximum: 1.0
+                  },
+                  type: {
+                    type: "string",
+                    description: "Type of phrase: idiom, phrasal_verb, expression, or pattern",
+                    enum: ["idiom", "phrasal_verb", "expression", "pattern"]
+                  }
+                },
+                required: ["english", "translation", "confidence", "type"]
+              }
+            }
+          },
+          required: ["englishResponse", "localTranslation", "learnedWords", "learnedPhrases"]
+        }
       }
     };
 
@@ -340,7 +488,34 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
       throw new Error('Invalid response format from Gemini API');
     }
 
-    return data.candidates[0].content.parts[0].text;
+    const responseText = data.candidates[0].content.parts[0].text;
+    
+    try {
+      // Try to parse JSON response
+      const parsedResponse = JSON.parse(responseText);
+      
+      // Validate required fields
+      if (!parsedResponse.englishResponse || !parsedResponse.localTranslation) {
+        throw new Error('Missing required fields in structured response');
+      }
+      
+      // Return structured response
+      return {
+        reply: `${parsedResponse.englishResponse} (${parsedResponse.localTranslation})`,
+        learnedWords: parsedResponse.learnedWords || [],
+        learnedPhrases: parsedResponse.learnedPhrases || [],
+        structured: true
+      };
+    } catch (parseError) {
+      // Fallback to plain text response if JSON parsing fails
+      console.warn('Failed to parse structured response, falling back to plain text:', parseError.message);
+      return {
+        reply: responseText,
+        learnedWords: [],
+        learnedPhrases: [],
+        structured: false
+      };
+    }
   } catch (error) {
     if (error.message.includes('429')) {
       throw new Error('Gemini API rate limit exceeded');
