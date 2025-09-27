@@ -137,9 +137,9 @@ const HomePage = () => {
           <button 
             className="learned-words-btn" 
             onClick={() => navigate('/learned-words')}
-            aria-label="View learned words"
+            aria-label="View learned words and phrases"
           >
-            📚 My Words
+            📚 My Learnings
           </button>
         </div>
         {userInsights && (

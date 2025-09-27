@@ -57,6 +57,15 @@ Do NOT mark as learned if:
 - User appears to be guessing the meaning
 - Word is used only once or in a simple context
 
+LEARNED PHRASES DETECTION:
+Similarly to words, mark phrases as "learned" only when you are convinced the user has mastered them:
+- Natural use of idiomatic expressions
+- Correct usage of phrasal verbs
+- Proper sentence structures and patterns
+- Complex grammatical constructions used correctly
+
+Mark phrases as learned ONLY when confidence level is >= 0.8 (very confident).
+
 RESPONSE FORMAT:
 You MUST respond with valid JSON in the following structure:
 {
@@ -67,6 +76,14 @@ You MUST respond with valid JSON in the following structure:
       "english": "word",
       "translation": "translation in ${language}",
       "confidence": 0.85
+    }
+  ],
+  "learnedPhrases": [
+    {
+      "english": "phrase or idiom",
+      "translation": "translation in ${language}",
+      "confidence": 0.85,
+      "type": "idiom" // or "phrasal_verb", "expression", "pattern"
     }
   ]
 }
@@ -83,6 +100,14 @@ Example JSON response:
       "english": "explore",
       "translation": "अन्वेषण करना",
       "confidence": 0.9
+    }
+  ],
+  "learnedPhrases": [
+    {
+      "english": "explore this topic further",
+      "translation": "इस विषय को और गहराई से जानना",
+      "confidence": 0.85,
+      "type": "expression"
     }
   ]
 }
@@ -292,6 +317,7 @@ async function chatHandler(req, res) {
       response = {
         reply: response,
         learnedWords: [],
+        learnedPhrases: [],
         structured: false
       };
     }
@@ -299,6 +325,7 @@ async function chatHandler(req, res) {
     return res.status(200).json({ 
       reply: response.reply || response, // Handle both structured and plain responses
       learnedWords: response.learnedWords || [],
+      learnedPhrases: response.learnedPhrases || [],
       structured: response.structured || false,
       usedFallback: usedFallback,
       fallbackModel: usedFallback ? 'gemini' : null
@@ -409,9 +436,38 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
                 },
                 required: ["english", "translation", "confidence"]
               }
+            },
+            learnedPhrases: {
+              type: "array",
+              description: "Array of phrases, idioms, or expressions the user has demonstrated mastery of",
+              items: {
+                type: "object",
+                properties: {
+                  english: {
+                    type: "string",
+                    description: "The English phrase or expression the user has learned"
+                  },
+                  translation: {
+                    type: "string",
+                    description: "The translation of the phrase in the user's local language"
+                  },
+                  confidence: {
+                    type: "number",
+                    description: "Confidence level (0.0-1.0) that the user has truly learned this phrase",
+                    minimum: 0.0,
+                    maximum: 1.0
+                  },
+                  type: {
+                    type: "string",
+                    description: "Type of phrase: idiom, phrasal_verb, expression, or pattern",
+                    enum: ["idiom", "phrasal_verb", "expression", "pattern"]
+                  }
+                },
+                required: ["english", "translation", "confidence", "type"]
+              }
             }
           },
-          required: ["englishResponse", "localTranslation", "learnedWords"]
+          required: ["englishResponse", "localTranslation", "learnedWords", "learnedPhrases"]
         }
       }
     };
@@ -447,6 +503,7 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
       return {
         reply: `${parsedResponse.englishResponse} (${parsedResponse.localTranslation})`,
         learnedWords: parsedResponse.learnedWords || [],
+        learnedPhrases: parsedResponse.learnedPhrases || [],
         structured: true
       };
     } catch (parseError) {
@@ -455,6 +512,7 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
       return {
         reply: responseText,
         learnedWords: [],
+        learnedPhrases: [],
         structured: false
       };
     }

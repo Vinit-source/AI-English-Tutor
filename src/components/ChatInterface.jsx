@@ -581,15 +581,18 @@ const ChatInterface = () => {
       
       // Send to API with context about correction practice
       let response;
+      let responseText;
       let aiResponseData = null;
       
       if (isCorrectingPractice) {
         responseText = `Perfect! That's exactly right. Let's continue our conversation. (${getTranslation('Perfect', userLanguage)})`;
+        response = responseText;
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
         // Normal API call for regular conversation
-        aiResponseData = await getAIResponse(inputValue, userLanguage, modelToUse, scenario);
+        aiResponseData = await getAIResponse(currentMessage, userLanguage, modelToUse, scenario);
         response = aiResponseData.reply || aiResponseData;
+        responseText = response;
         
         // Handle learned words if available
         if (aiResponseData.learnedWords && aiResponseData.learnedWords.length > 0) {
@@ -621,12 +624,10 @@ const ChatInterface = () => {
       speakText(cleanResponse); 
       
       const learnedWords = (typeof aiResponseData === 'object' && aiResponseData.learnedWords) ? aiResponseData.learnedWords : [];
+      const learnedPhrases = (typeof aiResponseData === 'object' && aiResponseData.learnedPhrases) ? aiResponseData.learnedPhrases : [];
       
-      // Save the conversation in user memory
-      userMemory.recordConversation(inputValue, cleanResponse, scenario);
-
-      // Record learned words in user memory
-      learnedWords.forEach(word => userMemory.recordLearnedWord(word));
+      // Save the conversation in user memory with learned words and phrases
+      userMemory.recordConversation(currentMessage, cleanResponse, scenario, learnedWords, learnedPhrases);
 
     } catch (error) {
       console.error('Error getting AI response:', error);

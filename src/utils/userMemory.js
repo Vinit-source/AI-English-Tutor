@@ -41,6 +41,12 @@ class UserMemory {
           totalLearnedCount: 0,
           lastUpdated: null
         },
+        learnedPhrases: {
+          // Structure: { phrase: { translation, confidence, learnedDate, context, usageCount, type } }
+          masteredPhrases: {},
+          totalLearnedCount: 0,
+          lastUpdated: null
+        },
         adaptationSettings: {
           personalizedRecommendations: true,
           dynamicScenarios: true,
@@ -138,7 +144,7 @@ class UserMemory {
   }
 
   // Track conversation patterns and learned words
-  recordConversation(userMessage, aiResponse, scenarioId, learnedWordsFromAI = []) {
+  recordConversation(userMessage, aiResponse, scenarioId, learnedWordsFromAI = [], learnedPhrasesFromAI = []) {
     const memory = this.getMemory();
     if (!memory) return;
 
@@ -148,6 +154,9 @@ class UserMemory {
     // Process learned words from AI response
     this.processLearnedWords(learnedWordsFromAI, memory, scenarioId);
     
+    // Process learned phrases from AI response  
+    this.processLearnedPhrases(learnedPhrasesFromAI, memory, scenarioId);
+    
     // Store conversation history (keep last 50 exchanges)
     const conversationEntry = {
       timestamp: new Date().toISOString(),
@@ -156,7 +165,8 @@ class UserMemory {
       aiResponse,
       messageLength: userMessage.length,
       wordCount: userMessage.split(' ').length,
-      learnedWordsCount: learnedWordsFromAI.length
+      learnedWordsCount: learnedWordsFromAI.length,
+      learnedPhrasesCount: learnedPhrasesFromAI.length
     };
 
     let conversationHistory = this.getConversationHistory();
@@ -256,6 +266,60 @@ class UserMemory {
     });
   }
 
+  // Process learned phrases identified by AI
+  processLearnedPhrases(learnedPhrasesFromAI, memory, scenarioId) {
+    if (!Array.isArray(learnedPhrasesFromAI) || learnedPhrasesFromAI.length === 0) {
+      return;
+    }
+
+    learnedPhrasesFromAI.forEach(phraseData => {
+      const { english, translation, confidence = 0.8, type = 'expression' } = phraseData;
+      
+      if (!english || !translation) {
+        return; // Skip incomplete data
+      }
+
+      const phraseKey = english.toLowerCase().trim();
+      
+      // Only consider phrases with high confidence (>= 0.7) as truly learned
+      if (confidence >= 0.7) {
+        const currentTime = new Date().toISOString();
+        
+        if (memory.learnedPhrases.masteredPhrases[phraseKey]) {
+          // Update existing learned phrase
+          const existingPhrase = memory.learnedPhrases.masteredPhrases[phraseKey];
+          existingPhrase.usageCount = (existingPhrase.usageCount || 1) + 1;
+          existingPhrase.lastUsed = currentTime;
+          existingPhrase.contexts = existingPhrase.contexts || [];
+          
+          // Add scenario context if not already present
+          if (!existingPhrase.contexts.includes(scenarioId)) {
+            existingPhrase.contexts.push(scenarioId);
+          }
+          
+          // Update confidence (weighted average)
+          existingPhrase.confidence = (existingPhrase.confidence * 0.7) + (confidence * 0.3);
+        } else {
+          // Add new learned phrase
+          memory.learnedPhrases.masteredPhrases[phraseKey] = {
+            english: english.trim(),
+            translation: translation.trim(),
+            confidence: confidence,
+            type: type,
+            learnedDate: currentTime,
+            lastUsed: currentTime,
+            usageCount: 1,
+            contexts: [scenarioId]
+          };
+          
+          memory.learnedPhrases.totalLearnedCount++;
+        }
+        
+        memory.learnedPhrases.lastUpdated = currentTime;
+      }
+    });
+  }
+
   // Get learned words for display
   getLearnedWords() {
     const memory = this.getMemory();
@@ -294,6 +358,64 @@ class UserMemory {
       averageConfidence: learnedWords.length > 0 
         ? learnedWords.reduce((sum, word) => sum + word.confidence, 0) / learnedWords.length 
         : 0
+    };
+  }
+
+  // Get learned phrases for display
+  getLearnedPhrases() {
+    const memory = this.getMemory();
+    if (!memory || !memory.learnedPhrases) return [];
+
+    return Object.entries(memory.learnedPhrases.masteredPhrases)
+      .map(([phraseKey, phraseData]) => ({
+        phrase: phraseKey,
+        ...phraseData
+      }))
+      .sort((a, b) => new Date(b.learnedDate) - new Date(a.learnedDate));
+  }
+
+  // Get learned phrases statistics
+  getLearnedPhrasesStats() {
+    const memory = this.getMemory();
+    if (!memory || !memory.learnedPhrases) return null;
+
+    const learnedPhrases = this.getLearnedPhrases();
+    const now = new Date();
+    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const phrasesThisWeek = learnedPhrases.filter(phrase => 
+      new Date(phrase.learnedDate) > thisWeek
+    ).length;
+
+    const phrasesThisMonth = learnedPhrases.filter(phrase => 
+      new Date(phrase.learnedDate) > thisMonth
+    ).length;
+
+    return {
+      totalLearned: memory.learnedPhrases.totalLearnedCount,
+      learnedThisWeek: phrasesThisWeek,
+      learnedThisMonth: phrasesThisMonth,
+      averageConfidence: learnedPhrases.length > 0 
+        ? learnedPhrases.reduce((sum, phrase) => sum + phrase.confidence, 0) / learnedPhrases.length 
+        : 0
+    };
+  }
+
+  // Get combined learning statistics (words + phrases)
+  getCombinedLearningStats() {
+    const wordsStats = this.getLearnedWordsStats();
+    const phrasesStats = this.getLearnedPhrasesStats();
+    
+    if (!wordsStats && !phrasesStats) return null;
+
+    return {
+      totalLearned: (wordsStats?.totalLearned || 0) + (phrasesStats?.totalLearned || 0),
+      learnedThisWeek: (wordsStats?.learnedThisWeek || 0) + (phrasesStats?.learnedThisWeek || 0),
+      learnedThisMonth: (wordsStats?.learnedThisMonth || 0) + (phrasesStats?.learnedThisMonth || 0),
+      averageConfidence: ((wordsStats?.averageConfidence || 0) + (phrasesStats?.averageConfidence || 0)) / 2,
+      words: wordsStats,
+      phrases: phrasesStats
     };
   }
 
