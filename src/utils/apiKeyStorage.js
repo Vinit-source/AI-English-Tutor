@@ -1,10 +1,12 @@
 // Utility module for securely storing and retrieving API keys using Web Crypto API
 
 const STORAGE_PREFIX = 'enc_api_key_';
-const SALT_SUFFIX = '_salt';
 
 /**
  * Generate a crypto key from a passphrase (derived from browser fingerprint)
+ * Note: This approach intentionally ties API keys to a specific browser/device.
+ * Keys are not portable across devices, which is acceptable for this use case
+ * as the encryption primarily prevents plain-text storage in localStorage.
  */
 async function getEncryptionKey() {
   // Use a combination of browser characteristics as entropy

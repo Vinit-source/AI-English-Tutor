@@ -150,7 +150,7 @@ async function chatHandler(req, res) {
       }
     } catch (modelError) {
       console.error(`Error with ${model} API:`, modelError);
-      throw new Error(`Model error: ${modelError.message}`);
+      throw new Error(`${model.charAt(0).toUpperCase() + model.slice(1)} model error: ${modelError.message}`);
     }
 
     return res.status(200).json({ 

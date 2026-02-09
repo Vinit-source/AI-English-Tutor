@@ -422,11 +422,11 @@ const ChatInterface = () => {
   const handleApiKeyCancel = () => {
     setShowApiKeyDialog(false);
     setApiKeyService(null);
-    pendingMessageRef.current = null;
     // Restore the input value if there was a pending message
     if (pendingMessageRef.current) {
       setInputValue(pendingMessageRef.current.message);
     }
+    pendingMessageRef.current = null;
   };
 
   return (
