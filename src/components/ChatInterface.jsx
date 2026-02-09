@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ObjectivesPanel from './ObjectivesPanel';
 import ChatMessage from './ChatMessage';
+import ApiKeyDialog from './ApiKeyDialog';
 import { getScenarioById } from '../data/scenarioLoader';
+import { storeApiKey, getApiKey, hasApiKey, getServiceFromModel } from '../utils/apiKeyStorage';
 import '../styles/ChatInterface.css';
 
 const ChatInterface = () => {
@@ -25,6 +27,9 @@ const ChatInterface = () => {
   const [lastCorrection, setLastCorrection] = useState('');
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [apiKeyService, setApiKeyService] = useState(null);
+  const pendingMessageRef = useRef(null);
   const MAX_RETRIES = 3;
   const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -185,14 +190,36 @@ const ChatInterface = () => {
 
     setError(null); // Clear any existing errors
 
+    // Check if API key exists for the selected model
+    const service = getServiceFromModel(llmModel);
+    const apiKeyExists = hasApiKey(service);
+    
+    if (!apiKeyExists) {
+      // Store the message to send after API key is saved
+      pendingMessageRef.current = {
+        message: inputValue,
+        isPractice: isPracticeMode,
+        correction: lastCorrection
+      };
+      
+      // Show API key dialog
+      setApiKeyService(service);
+      setShowApiKeyDialog(true);
+      return;
+    }
+
+    await sendMessageWithApiKey(inputValue, isPracticeMode, lastCorrection);
+  };
+
+  const sendMessageWithApiKey = async (message, practiceMode, correction) => {
     // Create a flag to track if this is a correction practice
-    const isCorrectingPractice = isPracticeMode && inputValue.trim().toLowerCase() === lastCorrection.toLowerCase();
+    const isCorrectingPractice = practiceMode && message.trim().toLowerCase() === correction.toLowerCase();
     
     // Add user message to chat
     const newMessages = [...messages, { 
       type: 'user', 
-      content: inputValue,
-      isPractice: isPracticeMode
+      content: message,
+      isPractice: practiceMode
     }];
     
     setMessages(newMessages);
@@ -200,7 +227,7 @@ const ChatInterface = () => {
     setIsLoading(true);
     
     // Exit practice mode after sending
-    if (isPracticeMode) {
+    if (practiceMode) {
       setIsPracticeMode(false);
       setLastCorrection('');
     }
@@ -221,7 +248,7 @@ const ChatInterface = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
         // Normal API call for regular conversation
-        response = await getAIResponse(inputValue, userLanguage, modelToUse, scenario);
+        response = await getAIResponse(message, userLanguage, modelToUse, scenario);
       }
       
       // Check if response contains objective markers and update objectives
@@ -263,13 +290,25 @@ const ChatInterface = () => {
         content: message
       });
 
+      // Get the API key for the service
+      const service = getServiceFromModel(model);
+      const apiKey = await getApiKey(service);
+      
+      if (!apiKey) {
+        throw new Error('API key not found. Please configure your API key.');
+      }
+
       const apiUrl = window.location.hostname === 'localhost' 
         ? 'http://localhost:3000/api/chat'
         : '/api/chat';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+          'X-Service': service
+        },
         body: JSON.stringify({
           message,
           language,
@@ -361,6 +400,33 @@ const ChatInterface = () => {
       handleCloseObjectives();
     }
     setInputValue(e.target.value);
+  };
+
+  const handleApiKeySave = async (apiKey) => {
+    const success = await storeApiKey(apiKeyService, apiKey);
+    if (success) {
+      setShowApiKeyDialog(false);
+      setApiKeyService(null);
+      
+      // If there's a pending message, send it now
+      if (pendingMessageRef.current) {
+        const { message, isPractice, correction } = pendingMessageRef.current;
+        pendingMessageRef.current = null;
+        await sendMessageWithApiKey(message, isPractice, correction);
+      }
+    } else {
+      throw new Error('Failed to save API key');
+    }
+  };
+
+  const handleApiKeyCancel = () => {
+    setShowApiKeyDialog(false);
+    setApiKeyService(null);
+    pendingMessageRef.current = null;
+    // Restore the input value if there was a pending message
+    if (pendingMessageRef.current) {
+      setInputValue(pendingMessageRef.current.message);
+    }
   };
 
   return (
@@ -464,6 +530,14 @@ const ChatInterface = () => {
             }}
           />
         </div>
+      )}
+
+      {showApiKeyDialog && apiKeyService && (
+        <ApiKeyDialog 
+          service={apiKeyService}
+          onSave={handleApiKeySave}
+          onCancel={handleApiKeyCancel}
+        />
       )}
     </div>
   );

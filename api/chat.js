@@ -15,12 +15,6 @@ const __dirname = dirname(__filename);
 // Configure dotenv to look for .env in the project root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Initialize Google Gen AI client
-let geminiClient = null;
-if (process.env.GEMINI_API_KEY) {
-  geminiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-}
-
 // Load system prompt from file
 async function loadSystemPrompt(scenario, language = 'hindi') {
   try {
@@ -48,15 +42,6 @@ This structured format is essential for the application to detect corrections pr
     console.error(`Error loading prompt for scenario ${scenario}:`, error);
     return null;
   }
-}
-
-// Validate required environment variables
-const requiredEnvVars = ['GEMINI_API_KEY', 'MISTRAL_API_KEY', 'OPENROUTER_API_KEY'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars.join(', '));
-//   process.exit(1);
 }
 
 const app = express();
@@ -105,6 +90,17 @@ async function chatHandler(req, res) {
       });
     }
 
+    // Get API key from headers
+    const userApiKey = req.headers['x-api-key'];
+    const service = req.headers['x-service'];
+    
+    if (!userApiKey) {
+      return res.status(401).json({ 
+        error: 'API key required',
+        details: 'Please provide your API key'
+      });
+    }
+
     // Request body validation
     const { message, language, model, scenario, conversationHistory } = req.body;
     
@@ -130,17 +126,17 @@ async function chatHandler(req, res) {
     try {
       switch (model) {
         case 'gemini': {
-          response = await callGeminiAPI(process.env.GEMINI_API_KEY, message, systemPrompt, conversationHistory);
+          response = await callGeminiAPI(userApiKey, message, systemPrompt, conversationHistory);
           break;
         }
         case 'mistral': {
-          response = await callMistralAPI(process.env.MISTRAL_API_KEY, message, systemPrompt, conversationHistory);
+          response = await callMistralAPI(userApiKey, message, systemPrompt, conversationHistory);
           break;
         }
         case 'gemma':
         case 'deepseek': {
           response = await callOpenRouterAPI(
-            process.env.OPENROUTER_API_KEY,
+            userApiKey,
             model, // Just pass the model identifier
             message,
             systemPrompt,
@@ -154,13 +150,7 @@ async function chatHandler(req, res) {
       }
     } catch (modelError) {
       console.error(`Error with ${model} API:`, modelError);
-      // Try fallback model if primary fails
-      try {
-        response = await callGeminiAPI(process.env.GEMINI_API_KEY, message, systemPrompt, conversationHistory);
-        usedFallback = true;
-      } catch (fallbackError) {
-        throw new Error(`Both primary and fallback models failed: ${modelError.message}`);
-      }
+      throw new Error(`Model error: ${modelError.message}`);
     }
 
     return res.status(200).json({ 
@@ -216,10 +206,8 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
   }
 
   try {
-    // Initialize client if not already done
-    if (!geminiClient) {
-      geminiClient = new GoogleGenAI({ apiKey });
-    }
+    // Create a new client with the user's API key
+    const client = new GoogleGenAI({ apiKey });
 
     // Format conversation history
     const formattedHistory = conversationHistory.map(msg => ({
@@ -241,7 +229,7 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
     ];
 
     // Call the Gemini 3.0 Flash model using the new SDK
-    const response = await geminiClient.models.generateContent({
+    const response = await client.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: contents,
       config: {
