@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
 import fs from 'fs/promises';
+import { GoogleGenAI } from '@google/genai';
 
 // Get the directory path for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -13,6 +14,12 @@ const __dirname = dirname(__filename);
 
 // Configure dotenv to look for .env in the project root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// Initialize Google Gen AI client
+let geminiClient = null;
+if (process.env.GEMINI_API_KEY) {
+  geminiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
 
 // Load system prompt from file
 async function loadSystemPrompt(scenario, language = 'hindi') {
@@ -209,51 +216,49 @@ async function callGeminiAPI(apiKey, message, systemPrompt, conversationHistory)
   }
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    
-    // Format messages according to Gemini's requirements
+    // Initialize client if not already done
+    if (!geminiClient) {
+      geminiClient = new GoogleGenAI({ apiKey });
+    }
+
+    // Format conversation history
     const formattedHistory = conversationHistory.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    const payload = {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: systemPrompt }]
-        },
-        ...formattedHistory,
-        {
-          role: 'user',
-          parts: [{ text: message }]
-        }
-      ],
-      generationConfig: {
+    // Build the contents array with system prompt, history, and current message
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: systemPrompt }]
+      },
+      ...formattedHistory,
+      {
+        role: 'user',
+        parts: [{ text: message }]
+      }
+    ];
+
+    // Call the Gemini 3.0 Flash model using the new SDK
+    const response = await geminiClient.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: contents,
+      config: {
         temperature: 0.7,
         maxOutputTokens: 1024
       }
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-    }
-
-    const data = await response.json();
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+    // Extract and return the text response
+    if (!response.text) {
       throw new Error('Invalid response format from Gemini API');
     }
 
-    return data.candidates[0].content.parts[0].text;
+    return response.text;
   } catch (error) {
-    if (error.message.includes('429')) {
+    console.error('Gemini API error:', error);
+    if (error.message?.includes('429') || error.status === 429) {
       throw new Error('Gemini API rate limit exceeded');
     }
     throw error;
